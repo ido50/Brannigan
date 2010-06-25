@@ -2,19 +2,11 @@ package Brannigan;
 
 use warnings;
 use strict;
-use Brannigan::Scheme;
+use Brannigan::Tree;
 
 =head1 NAME
 
 Brannigan - Easy, flexible system for validating and parsing input.
-
-=head1 VERSION
-
-Version 0.01
-
-=cut
-
-our $VERSION = '0.01';
 
 =head1 SYNOPSIS
 
@@ -40,7 +32,7 @@ L<Brannigan::Scheme> for complete description of schemes).
 sub new {
 	my $class = shift;
 
-	my $self = { map { $_->{name} => Brannigan::Scheme->new($_) } @_ };
+	my $self = { map { $_->{name} => $_ } @_ };
 
 	return bless $self, $class;
 }
@@ -56,11 +48,76 @@ Returns a hash-ref of parsed parameters according to the parsing scheme.
 =cut
 
 sub process {
-	my ($self, $scheme, $params);
+	my ($self, $scheme, $params) = @_;
 
 	return undef unless $scheme && $params && ref $params eq 'HASH' && $self->{$scheme};
 
-	return $self->{$scheme}->process($params);
+	my $tree = $self->_build_tree($scheme);
+
+	return $tree->process($params);
+}
+
+=head1 INTERNAL METHODS
+
+=head2 _build_tree( $scheme )
+
+Builds the final "tree" of validations and parsing methods to be performed
+on the parameters hash during processing.
+
+=cut
+
+sub _build_tree {
+	my ($self, $scheme) = @_;
+
+	my @trees;
+
+	# get a list of all schemes to inherit from
+	my @schemes = $self->{$scheme}->{inherits_from} && ref $self->{$scheme}->{inherits_from} eq 'ARRAY' ? @{$self->{$scheme}->{inherits_from}} : $self->{$scheme}->{inherits_from} ? ($self->{$scheme}->{inherits_from}) : ();
+
+	foreach (@schemes) {
+		next unless $self->{$_};
+		
+		push(@trees, $self->_build_tree($_));
+	}
+
+	return Brannigan::Tree->new($self->_merge_trees(@trees, $self->{$scheme}));
+}
+
+=head2 _merge_trees( @trees )
+
+Merges two or more hash-ref of validation/parsing trees and returns the
+resulting tree. The merge is performed in order, so trees later in the
+array (i.e. on the right) "tramp" the trees on the left.
+
+=cut
+
+sub _merge_trees {
+	my $self = shift;
+
+	return undef unless scalar @_ && (ref $_[0] eq 'HASH' || ref $_[0] eq 'Brannigan::Tree');
+
+	# the leftmost tree is the starting tree
+	my $tree = shift;
+	my %tree = %$tree;
+
+	# now for the merging business
+	foreach (@_) {
+		next unless ref $_ eq 'HASH';
+
+		foreach my $k (keys %$_) {
+			if (ref $_->{$k} eq 'HASH') {
+				unless (exists $tree{$k}) {
+					$tree{$k} = $_->{$k};
+				} else {
+					$tree{$k} = $self->_merge_trees($tree{$k}, $_->{$k});
+				}
+			} else {
+				$tree{$k} = $_->{$k};
+			}
+		}
+	}
+
+	return \%tree;
 }
 
 =head1 AUTHOR
