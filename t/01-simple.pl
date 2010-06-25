@@ -1,9 +1,8 @@
-#!/usr/bin/perl -w
+#!perl -T
 
 use strict;
 use warnings;
-use lib '../lib';
-#use Test::More tests;
+use Test::More tests => 5;
 use Brannigan;
 
 my $b = Brannigan->new(
@@ -85,7 +84,7 @@ my $b = Brannigan->new(
 		},
 	});
 
-#ok($b, 'Got a proper Brannigan object');
+ok($b, 'Got a proper Brannigan object');
 
 my $data = $b->process('post', {
 	subject		=> 'su',
@@ -98,8 +97,30 @@ my $data = $b->process('post', {
 	id		=> 300000000,
 });
 
-use Data::Dumper;
-print Dumper($data);
+is_deeply($data, {
+	'date' => '2010-12-13',
+	'subject' => 'su',
+	'section' => 'receips',
+	'_rejects' => {
+		'text' => [
+			'required(1)',
+			'min_length(10)',
+			'validate'
+		],
+		'subject' => [
+			'length_between(3, 40)'
+		],
+		'id' => [
+			'exact_length(10)',
+			'value_between(1000000000, 2000000000)'
+		]
+	},
+	'text' => undef,
+	'day' => 13,
+	'mon' => 12,
+	'id' => 300000000,
+	'year' => 2010
+	}, 'simple scheme with rejects');
 
 my $data2 = $b->process('post', {
 	subject		=> 'subject',
@@ -109,8 +130,12 @@ my $data2 = $b->process('post', {
 	id		=> 1515151515,
 });
 
-use Data::Dumper;
-print Dumper($data2);
+is_deeply($data2, {
+	'subject' => 'subject',
+	'text' => 'lorem ipsum dolor sit amet',
+	'section' => 'receips',
+	'id' => 1515151515
+	}, 'simple scheme with no rejects');
 
 my $data3 = $b->process('edit_post', {
 	subject		=> 'subject edited',
@@ -118,8 +143,16 @@ my $data3 = $b->process('edit_post', {
 	id		=> 1515151515,
 });
 
-use Data::Dumper;
-print Dumper($data3);
+is_deeply($data3, {
+		'_rejects' => {
+			'id' => [
+				'forbidden(1)'
+			]
+		},
+		'subject' => 'subject edited',
+		'section' => 'general',
+		'id' => 1515151515
+	}, 'inheriting scheme with rejects');
 
 my $data4 = $b->process('edit_post', {
 	subject		=> undef,
@@ -127,7 +160,10 @@ my $data4 = $b->process('edit_post', {
 	section		=> 1,
 });
 
-use Data::Dumper;
-print Dumper($data4);
+is_deeply($data4, {
+		'subject' => undef,
+		'id' => undef,
+		'section' => 'reviews'
+	}, 'inheriting scheme with no rejects');
 
-#done_testing();
+done_testing();
