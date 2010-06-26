@@ -264,7 +264,7 @@ they are part of the 'date' group.
 
 =head1 METHODS
 
-=head2 new( \%scheme | @schemes )
+=head2 new( $scheme | @schemes )
 
 Creates a new instance of Brannigan, with the provided scheme(s) (see
 HOW SCHEMES WORK for more info on schemes).
@@ -279,7 +279,7 @@ sub new {
 	return bless $self, $class;
 }
 
-=head2 process( \%scheme, \%params )
+=head2 process( $scheme, \%params )
 
 Receives the name of a scheme and a hash-ref of inupt parameters, and
 validates and parses these paremeters according to the scheme (see
@@ -301,7 +301,7 @@ sub process {
 
 =head1 INTERNAL METHODS
 
-=head2 _build_tree( \%scheme )
+=head2 _build_tree( $scheme )
 
 Builds the final "tree" of validations and parsing methods to be performed
 on the parameters hash during processing.
