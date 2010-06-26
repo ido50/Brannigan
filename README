@@ -254,11 +254,11 @@ HOW SCHEMES WORK
     returned even though they are part of the 'date' group.
 
 METHODS
-  new( \%scheme | @schemes )
+  new( $scheme | @schemes )
     Creates a new instance of Brannigan, with the provided scheme(s) (see
     HOW SCHEMES WORK for more info on schemes).
 
-  process( \%scheme, \%params )
+  process( $scheme, \%params )
     Receives the name of a scheme and a hash-ref of inupt parameters, and
     validates and parses these paremeters according to the scheme (see HOW
     SCHEMES WORK for detailed information about this process).
@@ -266,7 +266,7 @@ METHODS
     Returns a hash-ref of parsed parameters according to the parsing scheme.
 
 INTERNAL METHODS
-  _build_tree( \%scheme )
+  _build_tree( $scheme )
     Builds the final "tree" of validations and parsing methods to be
     performed on the parameters hash during processing.
 
