@@ -63,7 +63,6 @@ my $b = Brannigan->new(
 		groups => {
 			date => {
 				params => [qw/year mon day/],
-				required => 0,
 				parse => sub {
 					my ($year, $mon, $day) = @_;
 					return undef unless $year && $mon && $day;
