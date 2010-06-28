@@ -91,7 +91,7 @@ This example uses L<Catalyst>, but should be pretty self explanatory.
 		inherits_from => 'post',
 		params => {
 			subject => {
-				required => 0,
+				required => 0, # subject is no longer required
 			},
 			id => {
 				forbidden => 1,
@@ -156,7 +156,8 @@ properties that don't exist in the base scheme).
 Brannigan works by receiving a hash-ref of input parameters, asserting
 all validation methods required for each parameter, and parsing every
 parameter (or group of parameters, see below). Brannigan then returns
-a hash-ref with all parsed input parameters (read about parsing below).
+a hash-ref with all parsed input parameters, and a '_rejects' key with
+failed validations (see more info below).
 
 =head1 HOW SCHEMES WORK
 
@@ -175,6 +176,14 @@ in the scheme should be added to the parsed output or not. Optional,
 defaults to false (i.e. parameters missing from the scheme will be added
 to the output as-is).
 
+=item * inherits_from
+
+Either a scalar naming a different scheme or an array-ref of scheme names.
+The new scheme will inherit all the properties of the scheme(s) defined
+by this key. If an array-ref is provided, the scheme will inherit their
+properties in the order the are defined. See the CAVEATS section for some
+"heads-up" about inheritance.
+
 =item * params
 
 A hash-ref containing the names of input parameters. Every such name (i.e.
@@ -183,13 +192,13 @@ validation methods, and optionally a parse method. This is done by naming
 the validation method as the key, and passing parameters to that method
 with the value. A custom validation method is defined with the 'validate'
 key, which expects to receive an anonymous subroutine. The value of the
-input parameter is automatically prepended to all validation routines.
-The routine is expected to return a true value if the parameter passed
+input parameter is automatically prepended to all validation routines, and
+these are expected to return a true value if the parameter passed
 the check, or a false value otherwise. A parsing method is defined with
 the 'parse' method, which is also an anonymous subroutine which
 automatically receives the value of the parameter. This method is expected
 to return a hash-ref of key-value pairs. These will be automatically
-apended to the output hash-ref. If no C<parse()> method is provided,
+appended to the output hash-ref. If no C<parse()> method is provided,
 the parameter is appended to the output hash-ref as-is (i.e. C<< param => value >>).
 
 For a list of all validation methods provided by Brannigan, check
@@ -205,7 +214,8 @@ three parameters allows you, for example, to return a string called 'date'
 which concatenates these three parameters to the YYYY-MM-DD format. A group
 is defined with a 'params' key, which expects an array-ref of parameters
 that belong to the group, and a 'parse' key which expects an anonymous
-subroutine, just like for individual parameters.
+subroutine, just like for individual parameters. This subroutine will
+receive the values of the parameters in the order they were defined.
 
 =back
 
@@ -264,7 +274,7 @@ they are part of the 'date' group.
 
 =head1 METHODS
 
-=head2 new( $scheme | @schemes )
+=head2 new( \%scheme | @schemes )
 
 Creates a new instance of Brannigan, with the provided scheme(s) (see
 HOW SCHEMES WORK for more info on schemes).
@@ -285,7 +295,8 @@ Receives the name of a scheme and a hash-ref of inupt parameters, and
 validates and parses these paremeters according to the scheme (see
 HOW SCHEMES WORK for detailed information about this process).
 
-Returns a hash-ref of parsed parameters according to the parsing scheme.
+Returns a hash-ref of parsed parameters according to the parsing scheme,
+possibly containing a list of failed validations for each parameter.
 
 =cut
 
@@ -327,7 +338,7 @@ sub _build_tree {
 
 =head2 _merge_trees( @trees )
 
-Merges two or more hash-ref of validation/parsing trees and returns the
+Merges two or more hash-refs of validation/parsing trees and returns the
 resulting tree. The merge is performed in order, so trees later in the
 array (i.e. on the right) "tramp" the trees on the left.
 
@@ -366,7 +377,7 @@ sub _merge_trees {
 
 This is the initial, "quick" version of Brannigan, so pretty much no
 checks are made on created schemes, so if you incorrectly define your
-schemes, Brannigan will not croak and processing will fail. Also, there
+schemes, Brannigan will not croak and processing will probably fail. Also, there
 is no support yet for recursive inheritance or any crazy inheritance
 situation. While deep inheritance is supported, it hasn't been tested yet.
 
