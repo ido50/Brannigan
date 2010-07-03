@@ -3,6 +3,7 @@ package Brannigan::Tree;
 use strict;
 use warnings;
 use Brannigan::Validations;
+use Data::Dumper;
 
 =head1 NAME
 
@@ -24,7 +25,9 @@ Creates a new Brannigan::Tree instance.
 =cut
 
 sub new {
-	bless pop, shift;
+	my $class = shift;
+
+	return bless $class->_merge_trees(@_), $class;
 }
 
 =head2 process( \%params )
@@ -40,49 +43,19 @@ sub process {
 
 	# validate the data
 	my $data = {};
-	my $rejects = $self->validate($params);
+
+	my $rejects = $self->validate($params, $self->{params});
 	$data->{_rejects} = $rejects if $rejects;
 
-	# parse the data
-	foreach (keys %$params) {
-		# is there a reference to this parameter in the scheme?
-		next if !exists $self->{params}->{$_} && $self->{ignore_missing};
-
-		unless (exists $self->{params}->{$_} && $self->{ignore_missing}) {
-			# pass the parameter as is
-			$data->{$_} = $params->{$_};
-			next;
-		}
-
-		# is there a parsing method?
-		if ($self->{params}->{$_}->{parse}) {
-			my $parsed = $self->{params}->{$_}->{parse}->($params->{$_});
-			foreach my $k (keys %$parsed) {
-				$data->{$k} = $parsed->{$k};
-			}
-		} else {
-			# just pass as-is
-			$data->{$_} = $params->{$_};
-		}
-	}
-
-	# parse group data
-	foreach (keys %{$self->{groups}}) {
-		my @data;
-		foreach my $p (@{$self->{groups}->{$_}->{params}}) {
-			push(@data, $params->{$p});
-		}
-		
-		my $parsed = $self->{groups}->{$_}->{parse}->(@data);
-		foreach my $k (keys %$parsed) {
-			$data->{$k} = $parsed->{$k};
-		}
+	my $prs = $self->parse($params, $self->{params}, $self->{groups});
+	foreach (keys %$prs) {
+		$data->{$_} = $prs->{$_};
 	}
 
 	return $data;
 }
 
-=head2 validate( \%params, [\%validations] )
+=head2 validate( \%params )
 
 Validates the hash-ref of input parameters and returns a hash-ref of rejects
 (i.e. failed validation methods) for each parameter. Optionally receives
@@ -95,43 +68,306 @@ called by the C<process()> method.
 =cut
 
 sub validate {
-	my ($self, $params, $validations) = @_;
+	my ($self, $params, $rules) = @_;
 
 	my $rejects;
 
-	# go over all parameters
+	# go over all the parameters and validate them
 	foreach (keys %$params) {
-		# is this parameter required? if not, and it has no value
-		# (either under or empty string), then don't bother checking
-		# any validations. if the parameter is forbidden and isn't provided,
-		# do the same
-		next unless exists $self->{params}->{$_};
-		next if !$self->{params}->{$_}->{required} && (!defined $params->{$_} || $params->{$_} eq '');
-		next if $self->{params}->{$_}->{forbidden} && (!defined $params->{$_} || $params->{$_} eq '');
+		# find references to this parameter, first in regexes, then direct
+		# give preference to the direct references
+		my @references;
+		push(@references, $rules->{_all}) if $rules->{_all};
+		foreach my $param (keys %$rules) {
+			next unless $param =~ m!^/([^/]+)/$!;
+			my $re = qr/$1/;
+			push(@references, $rules->{$param}) if m/$re/;
+		}
+		push(@references, $rules->{$_}) if $rules->{$_};
+
+		my $rj = $self->_validate_param($_, $params->{$_}, $self->_merge_trees(@references));
+
+		$rejects->{$_} = $rj if $rj;
+	}
+
+	# find required parameters that aren't there
+	foreach (keys %$rules) {
+		next if $_ eq '_all';
+		next if m!^/[^/]+/$!;
+		$rejects->{$_} = ['required(1)'] if $rules->{$_}->{required} && (!defined $params->{$_} || $params->{$_} eq '');
+	}
+
+	return $rejects;
+}
+
+=head2 parse( \%params, \%rules )
+
+=cut
+
+sub parse {
+	my ($self, $params, $param_rules, $group_rules) = @_;
+
+	my $data;
+
+	# fill-in missing parameters with default values, if defined
+	foreach (keys %$param_rules) {
+		next if m!^/[^/]+/$!;
+		next unless !defined $params->{$_} || $params->{$_} eq '';
+
+		# is there a default value/method?
+		if (exists $param_rules->{$_}->{default} && ref $param_rules->{$_}->{default} eq 'CODE') {
+			$data->{$_} = $param_rules->{$_}->{default}->();
+		} elsif (exists $param_rules->{$_}->{default}) {
+			$data->{$_} = $param_rules->{$_}->{default};
+		}
+	}
+
+	# parse the data
+	foreach (keys %$params) {
+		# ignore undefined or empty values
+		next if !defined $params->{$_} || $params->{$_} eq '';
 		
-		# get all validations we need to perform
-		foreach my $v (keys %{$self->{params}->{$_}}) {
-			next if $v eq 'parse';
-			
-			my @data = ref $self->{params}->{$_}->{$v} eq 'ARRAY' ? @{$self->{params}->{$_}->{$v}} : ($self->{params}->{$_}->{$v});
-			
-			# which validation method are we gonna use?
-			# custom ones have preference
-			if ($v eq 'validate' && ref $self->{params}->{$_}->{$v} eq 'CODE') {
-				# this is an "inline" validation method, invoke it
-				push(@{$rejects->{$_}}, $v) unless $self->{params}->{$_}->{$v}->($params->{$_}, @data);
-			} elsif ($validations && $validations->{$v} && ref $validations->{$v} eq 'CODE') {
-				# we're using a custom validation method defined in the
-				# Brannigan object
-				push(@{$rejects->{$_}}, $v.'('.join(', ', @data).')') unless $validations->{$v}->($params->{$_}, @data);
+		# is there a reference to this parameter in the scheme?
+		my $ref = undef;
+		foreach my $p (keys %{$param_rules->{$_}}) {
+			next unless $p =~ m!^/([^/]+)/$!;
+			my $re = qr/$1/;
+			next unless m/$re/;
+			$ref = 1;
+		}
+		$ref = 1 if $param_rules->{$_};
+		next if !$ref && $self->{ignore_missing};
+		unless ($ref && $self->{ignore_missing}) {
+			# pass the parameter as is
+			$data->{$_} = $params->{$_};
+			next;
+		}
+
+		# is this a hash-ref or an array-ref or just a scalar?
+		if (ref $params->{$_} eq 'HASH') {
+			my $pd = $self->parse($params->{$_}, $param_rules->{$_}->{keys});
+			foreach my $k (keys %$pd) {
+				$data->{$_}->{$k} = $pd->{$k};
+			}
+		} elsif (ref $params->{$_} eq 'ARRAY') {
+			foreach my $val (@{$params->{$_}}) {
+				# we need to parse this value with the rules
+				# in the 'values' key
+				my $pd = $self->parse({ param => $val }, { param => $param_rules->{$_}->{values} });
+				push(@{$data->{$_}}, $pd->{param});
+			}
+		} else {
+			# is there a parsing method?
+			# first see if there's one in a regex
+			my $parse;
+			my @data = ($params->{$_});
+			foreach my $r (keys %$param_rules) {
+				next unless $r =~ m!^/([^/]+)/$!;
+				my $re = qr/$1/;
+				
+				my @matches = (m/$re/);
+				next unless scalar @matches > 0;
+				push(@data, @matches);
+
+				$parse = $param_rules->{$r}->{parse} if $param_rules->{$r}->{parse};
+			}
+			$parse = $param_rules->{$_}->{parse} if $param_rules->{$_}->{parse};
+
+			# make sure if we have a parse method that is indeed a subroutine
+			if ($parse && ref $parse eq 'CODE') {
+				my $parsed = $parse->(@data);
+				foreach my $k (keys %$parsed) {
+					if (ref $parsed->{$k} eq 'HASH') {
+						foreach my $sk (keys %{$parsed->{$k}}) {
+							$data->{$k}->{$sk} = $parsed->{$k}->{$sk};
+						}
+					} elsif (ref $parsed->{$k} eq 'ARRAY') {
+						push(@{$data->{$k}}, @{$parsed->{$k}});
+					} else {
+						$data->{$k} = $parsed->{$k};
+					}
+				}
 			} else {
-				# we're using a built-in validation method
-				push(@{$rejects->{$_}}, $v.'('.join(', ', @data).')') unless Brannigan::Validations->$v($params->{$_}, @data);
+				# just pass as-is
+				$data->{$_} = $params->{$_};
 			}
 		}
 	}
 
+	# parse group data
+	if ($group_rules) {
+		foreach (keys %$group_rules) {
+			my @data;
+			
+			# do we have a list of parameters, or a regular expression?
+			if (exists $group_rules->{$_}->{params}) {
+				foreach my $p (@{$group_rules->{$_}->{params}}) {
+					push(@data, $data->{$p});
+				}
+			} elsif (exists $group_rules->{$_}->{regex}) {
+				my ($re) = ($group_rules->{$_}->{regex} =~ m!^/([^/]+)/$!);
+				next unless $re;
+				$re = qr/$re/;
+				foreach my $p (keys %$data) {
+					next unless $p =~ m/$re/;
+					push(@data, $data->{$p});
+				}
+			} else {
+				# we have nothing in this group
+				next;
+			}
+			
+			my $parsed = $group_rules->{$_}->{parse}->(@data);
+			foreach my $k (keys %$parsed) {
+				if (ref $parsed->{$k} eq 'ARRAY') {
+					push(@{$data->{$k}}, @{$parsed->{$k}});
+				} elsif (ref $parsed->{$k} eq 'HASH') {
+					foreach my $sk (keys %{$parsed->{$k}}) {
+						$data->{$k}->{$sk} = $parsed->{$k}->{$sk};
+					}
+				} else {
+					$data->{$k} = $parsed->{$k};
+				}
+			}
+		}
+	}
+
+	return $data;
+}
+
+=head1 INTERNAL METHODS
+
+=head2 _validate_param( $param, $value, \%validations )
+
+=cut
+
+sub _validate_param {
+	my ($self, $param, $value, $validations) = @_;
+
+	# is there any reference to this parameter in the scheme?
+	return undef unless $validations;
+
+	# is this parameter required? if not, and it has no value
+	# (either undef or an empty string), then don't bother checking
+	# any validations. If yes, and it has no value, do the same.
+	return undef if !$validations->{required} && (!defined $value || $value eq '');
+	return ('required') if $validations->{required} && (!defined $value || $value eq '');
+
+	# is this parameter forbidden? if yes, and it has a value,
+	# don't bother checking any other validations.
+	return ('forbidden') if $validations->{forbidden} && defined $value && $value ne '';
+
+	# is this a scalar, array or hash parameter?
+	if ($validations->{hash}) {
+		return $self->_validate_hash($param, $value, $validations);
+	} elsif ($validations->{array}) {
+		return $self->_validate_array($param, $value, $validations);
+	} else {
+		return $self->_validate_scalar($param, $value, $validations);
+	}
+}
+
+sub _validate_scalar {
+	my ($self, $param, $value, $validations, $type) = @_;
+
+	my @rejects;
+
+	# get all validations we need to perform
+	foreach my $v (keys %$validations) {
+		# skip the parse method and the default value
+		next if $v eq 'parse' || $v eq 'default';
+		next if $type && $type eq 'array' && $v eq 'values';
+		next if $type && $type eq 'hash' && $v eq 'keys';
+
+		# get the data we're passing to the validation method
+		my @data = ref $validations->{$v} eq 'ARRAY' ? @{$validations->{$v}} : ($validations->{$v});
+		
+		# which validation method are we gonna use?
+		# custom ones have preference
+		if ($v eq 'validate' && ref $validations->{$v} eq 'CODE') {
+			# this is an "inline" validation method, invoke it
+			push(@rejects, $v) unless $validations->{$v}->($value, @data);
+		} else {
+			# we're using a built-in validation method
+			push(@rejects, $v.'('.join(', ', @data).')') unless Brannigan::Validations->$v($value, @data);
+		}
+	}
+
+	return scalar @rejects ? [@rejects] : undef;
+}
+
+sub _validate_array {
+	my ($self, $param, $value, $validations) = @_;
+
+	# invoke validations on the parameter itself
+	my $rejects = {};
+	my $_self = $self->_validate_scalar($param, $value, $validations, 'array');
+	$rejects->{_self} = $_self if $_self;
+
+	# invoke validations on the values of the array
+	my $i = 0;
+	foreach (@$value) {
+		my $rj = $self->_validate_param("${param}[$i]", $_, $validations->{values});
+		$rejects->{$i} = $rj if $rj;
+		$i++;
+	}
+
 	return $rejects;
+}
+
+sub _validate_hash {
+	my ($self, $param, $value, $validations) = @_;
+
+	# invoke validations on the parameter itself
+	my $rejects = {};
+	my $_self = $self->_validate_scalar($param, $value, $validations, 'hash');
+	$rejects->{_self} = $_self if $_self;
+
+	# invoke validations on the keys of the hash (a.k.a mini-params)
+	my $hr = $self->validate($value, $validations->{keys});
+
+	foreach (keys %$hr) {
+		$rejects->{$_} = $hr->{$_};
+	}
+
+	return scalar keys %$rejects ? $rejects : undef;
+}
+
+=head2 _merge_trees( @trees )
+
+Merges two or more hash-refs of validation/parsing trees and returns the
+resulting tree. The merge is performed in order, so trees later in the
+array (i.e. on the right) "tramp" the trees on the left.
+
+=cut
+
+sub _merge_trees {
+	my $class = shift;
+
+	return undef unless scalar @_ && (ref $_[0] eq 'HASH' || ref $_[0] eq 'Brannigan::Tree');
+
+	# the leftmost tree is the starting tree
+	my $tree = shift;
+	my %tree = %$tree;
+
+	# now for the merging business
+	foreach (@_) {
+		next unless ref $_ eq 'HASH';
+
+		foreach my $k (keys %$_) {
+			if (ref $_->{$k} eq 'HASH') {
+				unless (exists $tree{$k}) {
+					$tree{$k} = $_->{$k};
+				} else {
+					$tree{$k} = $class->_merge_trees($tree{$k}, $_->{$k});
+				}
+			} else {
+				$tree{$k} = $_->{$k};
+			}
+		}
+	}
+
+	return \%tree;
 }
 
 =head1 SEE ALSO

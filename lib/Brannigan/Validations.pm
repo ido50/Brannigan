@@ -2,7 +2,6 @@ package Brannigan::Validations;
 
 use strict;
 use warnings;
-use DateTime::Format::ISO8601;
 
 =head1 NAME
 
@@ -54,60 +53,75 @@ sub forbidden {
 =head2 length_between( $value, $min_length, $max_length )
 
 Makes sure the value's length (stringwise) is inside the range of
-C<$min_length>-C<$max_length>.
+C<$min_length>-C<$max_length>, or, if the value is an array reference,
+makes sure it has between C<$min_length> and C<$max_length> items.
 
 =cut
 
 sub length_between {
 	my ($class, $value, $min, $max) = @_;
 
-	return undef if length($value) < $min || length($value) > $max;
+	my $length = ref $value eq 'ARRAY' ? @$value : length($value);
+	
+	return undef if $length < $min || $length > $max;
 
 	return 1;
 }
 
 =head2 min_length( $value, $min_length )
 
-Makes sure the value's length (stringwise) is at least C<$min_length>.
+Makes sure the value's length (stringwise) is at least C<$min_length>, or,
+if the value is an array reference, makes sure it has at least C<$min_length>
+items.
 
 =cut
 
 sub min_length {
 	my ($class, $value, $min) = @_;
 
+	my $length = ref $value eq 'ARRAY' ? @$value : length($value);
+
 	return 1 unless defined $min && $min >= 0;
 
-	return undef if !$value && $min || length($value) < $min;
+	return undef if !$value && $min || $length < $min;
 
 	return 1;
 }
 
 =head2 max_length( $value, $max_length )
 
-Makes sure the value's length (stringwise) is no more than C<$max_length>.
+Makes sure the value's length (stringwise) is no more than C<$max_length>,
+or, if the value is an array reference, makes sure it has no more than
+C<$max_length> items.
 
 =cut
 
 sub max_length {
 	my ($class, $value, $max) = @_;
 
-	return undef if length($value) > $max;
+	my $length = ref $value eq 'ARRAY' ? @$value : length($value);
+
+	return undef if $length > $max;
 
 	return 1;
 }
 
 =head2 exact_length( $value, $length )
 
-Makes sure the value's length (stringwise) is exactly C<$length>.
+Makes sure the value's length (stringwise) is exactly C<$length>, or,
+if the value is an array reference, makes sure it has exactly C<$exact_length>
+items.
 
 =cut
 
 sub exact_length {
-	my ($class, $value, $length) = @_;
+	my ($class, $value, $exlength) = @_;
 
 	return undef unless $value;
 
-	return undef if length($value) != $length;
+	my $length = ref $value eq 'ARRAY' ? @$value : length($value);
+
+	return undef if $length != $exlength;
 	
 	return 1;
 }
@@ -170,19 +184,44 @@ sub max_value {
 	return 1;
 }
 
-=head2 datetime( $value )
+=head2 array( $value, $boolean )
 
-Makes sure that value is a properly formatted date/time string. For
-accepted formats, check out L<DateTime::Format::ISO8601>.
+If C<$boolean> is true, makes sure the value is actually an array reference.
 
 =cut
 
-sub datetime {
-	my ($class, $value) = @_;
+sub array {
+	my ($class, $value, $boolean) = @_;
 
-	return undef unless $value;
+	return $boolean ? ref $value eq 'ARRAY' ? 1 : undef : ref $value eq 'ARRAY' ? undef : 1;
+}
 
-	return DateTime::Format::ISO8601->parse_datetime($value) ? 1 : undef;
+=head2 hash( $value, $boolean )
+
+If C<$boolean> is true, makes sure the value is actually a hash reference.
+
+=cut
+
+sub hash {
+	my ($class, $value, $boolean) = @_;
+
+	return $boolean ? ref $value eq 'HASH' ? 1 : undef : ref $value eq 'HASH' ? undef : 1;
+}
+
+=head2 one_of( $value, @values)
+
+Makes sure a parameter's value is one of the provided acceptable values.
+
+=cut
+
+sub one_of {
+	my ($class, $value, @values) = @_;
+
+	foreach (@values) {
+		return 1 if $value eq $_;
+	}
+
+	return undef;
 }
 
 =head1 SEE ALSO

@@ -1,6 +1,6 @@
 package Brannigan;
 
-# ABSTRACT: Easy, flexible system for validating and parsing input, mainly targeted at web applications.
+# ABSTRACT: Comprehensive, flexible system for validating and parsing input, mainly targeted at web applications.
 
 use warnings;
 use strict;
@@ -8,11 +8,13 @@ use Brannigan::Tree;
 
 =head1 NAME
 
-Brannigan - Easy, flexible system for validating and parsing input, mainly targeted at web applications.
+Brannigan - Comprehensive, flexible system for validating and parsing input, mainly targeted at web applications.
 
 =head1 SYNOPSIS
 
-This example uses L<Catalyst>, but should be pretty self explanatory.
+This example uses L<Catalyst>, but should be pretty self explanatory. It's
+fairly complex, since it details pretty much all of the available Brannigan
+functionality, so don't be alarmed by the size of this thing.
 
 	package MyApp::Controller::Post;
 
@@ -75,6 +77,30 @@ This example uses L<Catalyst>, but should be pretty self explanatory.
 				exact_length => 10,
 				value_between => [1000000000, 2000000000],
 			},
+			qr/^picture_(\d+)$/ => {
+				length_between => [3, 100],
+				validate => sub {
+					my ($value, $num) = @_;
+
+					...
+				},
+			},
+			somearray => {
+				array => 1,
+				integer => 1,
+			},
+			somehash => {
+				hash => 1,
+				params => {
+					en => {
+						required => 1,
+						exact_length => 10,
+					},
+					he => {
+						exact_length => 10,
+					},
+				},
+			},
 		},
 		groups => {
 			date => {
@@ -83,6 +109,28 @@ This example uses L<Catalyst>, but should be pretty self explanatory.
 					my ($year, $mon, $day) = @_;
 					return undef unless $year && $mon && $day;
 					return { date => $year.'-'.$mon.'-'.$day };
+				},
+			},
+			tags => {
+				regex => qr/^tags_(en|he|fr)$/,
+				parse => sub {
+					my @matches = @_;
+					
+					# every match is a little hash-ref with
+					# a 'value' key containing the value of
+					# the matched parameter, and a 'captures'
+					# key containing an array-ref of all
+					# regex captures
+					
+					my $hash = {};
+					foreach (@matches) {
+						my $value = $_->{value};
+						my $lang = shift @{$_->{captures}};
+						
+						$hash->{$lang} = $value;
+					}
+
+					return { tags => $hash };
 				},
 			},
 		},
@@ -204,6 +252,70 @@ the parameter is appended to the output hash-ref as-is (i.e. C<< param => value 
 For a list of all validation methods provided by Brannigan, check
 L<Brannigan::Validations>.
 
+As of version 0.3, parameter names can also be regular expressions in the
+form qr/regex/. Sometimes you cannot know the names of all parameters passed
+to your app. For example, you might have a dynamic web form which starts with
+a single field called 'url_1', but your app allows your visitors to dynamically
+add more fields, such as 'url_2', 'url_3', etc. Regular expressions are
+handy in such situations. Your parameter key can be qr/^url_(\d+)$/, and
+all such fields will be matched. Regex params have a special feature: if
+you're regex uses capturing, then captured values will be passed to the
+custom C<validate> and C<parse> methods (in their order) after the parameter's
+value. For example:
+
+	qr/^url_(\d+)$/ => {
+		validate => sub {
+			my ($value, $num) = @_;
+
+			return $value =~ m!^http://! ? 1 : undef;
+		},
+		parse => sub {
+			my ($value, $num) = @_;
+
+			return { urls => { $num => $value } };
+		},
+	}
+
+Note that if a certain parameter was directly referenced in the scheme,
+but also matched a regular expression, only the properties of the direct
+reference to that parameter will be used.
+
+As of version 0.3, Brannigan can also validate and parse a little more
+complex data structures. You can define a parameter as being an array
+(check the 'somearray' parameter in the synopsis example), which will cause
+Brannigan to check if the appropriate parameter in the input hash-ref is
+an array-ref, and if so, check all other validation methods on the values
+of this array-ref. If a value inside this array-ref fails any of the
+validation methods, it will be added to the '_rejects' hash-ref with the
+name of the parameter and the index of the value. For example, in our
+synopsis example, if the third value in the 'somearray' parameter failed
+the 'exact_length(10)' validation, then the _rejects hash-ref will contain
+C<{ somearray[2] => ['exact_length(10'] }>.
+
+Furthermore, you can define a parameter as being a hash (check the 'somehash'
+parameter in the synopsis example), which will cause Brannigan to check
+if the parameter's value is actually a hash-ref. This kinda makes the
+definition of validations on the keys of this hash-ref a mini-scheme.
+For example:
+
+	hash_param => {
+		hash => 1,
+		en => {
+			required => 1,
+			exact_length => 3,
+		},
+		he => {
+			exact_length => 3,
+		},
+	}
+
+After validating the 'hash_param' parameter is a hash-ref, Brannigan will
+go on the check the validation methods for each parameter of this hash-ref,
+such as 'en' and 'he.
+
+Note that Brannigan does not support deeper hash-refs, so a parameter can
+be a hash-ref, but none of it's "sub-parameters" can be hash-refs too.
+
 =item * groups
 
 A hash-ref containing the names of groups of input parameters. These are
@@ -216,6 +328,35 @@ is defined with a 'params' key, which expects an array-ref of parameters
 that belong to the group, and a 'parse' key which expects an anonymous
 subroutine, just like for individual parameters. This subroutine will
 receive the values of the parameters in the order they were defined.
+
+	group_name => {
+		params => [qw/one two three/],
+		parse => sub {
+			my ($one, $two, $three) = @_;
+		
+			...
+		},
+	}
+
+Alternatively to the 'params' key, you can define a 'regex' key that takes
+a regex. All parameters whose name matches this regex will be parsed as
+a group. This is a bit more complex than regexes in the C<params> hash. The
+C<parse> method will receive an array of hash-refs. Each of these hash-refs
+is a parameter that was matched by the regex, and will contain a 'value'
+key with value of the parameter, and a 'captures' key with an array-ref of
+all the regex's captures, in their order. In the following example, the regex
+captures a number from the name of each parameter (such as 12 in 'param_12').
+The C<parse> method will receive an array containing hash-refs such as
+C<{ value => 'some value', captures => [12] }>.
+
+	group_name => {
+		regex => qr/^param_(\d+)$/,
+		parse => sub {
+			my @matches = @_;
+
+			...
+		},
+	}
 
 =back
 
@@ -271,6 +412,27 @@ resulting hash-ref, since it is not referenced by the scheme and C<ignore_missin
 is on. Also, notice the 'date' key which was generated by the 'date' group.
 The 'day', 'mon' and 'year' parameters are still returned even though
 they are part of the 'date' group.
+
+=head2 HOW THE PARSE METHOD WORKS
+
+As stated earlier, you're C<parse> methods are expected to return a hash-ref
+of key-value pairs. Brannigan collection all of these key-value pairs
+and merges them into one big hash-ref (along with all the non-parsed
+parameters).
+
+Brannigan actually allows you to have your C<parse> methods be two-leveled.
+This means that a value in a key-value pair in itself can be a hash-ref.
+This allows you to use the same key in different places, and Brannigan
+will automatically aggregate all of these places, just like in the first
+level. So, for example, suppose you're scheme has a regex rule that matches
+parameters like 'tag_en' and 'tag_he'. You're parse method might return
+something like C<{ tags => { en => 'an english tag' } }> when it matches the
+'tag_en' parameter, and something like C<{ tags => { he => 'a hebrew tag' } }>
+when it matches the 'tag_he' parameter. The resulting hash-ref from the
+process method will thus include C<{ tags => { en => 'an english tag', he => 'a hebrew tag' } }>.
+
+Take note however that only two-levels are supported, and that I'm so
+tired right now that I have no idea what I'm writing.
 
 =head1 METHODS
 
@@ -333,49 +495,12 @@ sub _build_tree {
 		push(@trees, $self->_build_tree($_));
 	}
 
-	return Brannigan::Tree->new($self->_merge_trees(@trees, $self->{$scheme}));
-}
-
-=head2 _merge_trees( @trees )
-
-Merges two or more hash-refs of validation/parsing trees and returns the
-resulting tree. The merge is performed in order, so trees later in the
-array (i.e. on the right) "tramp" the trees on the left.
-
-=cut
-
-sub _merge_trees {
-	my $self = shift;
-
-	return undef unless scalar @_ && (ref $_[0] eq 'HASH' || ref $_[0] eq 'Brannigan::Tree');
-
-	# the leftmost tree is the starting tree
-	my $tree = shift;
-	my %tree = %$tree;
-
-	# now for the merging business
-	foreach (@_) {
-		next unless ref $_ eq 'HASH';
-
-		foreach my $k (keys %$_) {
-			if (ref $_->{$k} eq 'HASH') {
-				unless (exists $tree{$k}) {
-					$tree{$k} = $_->{$k};
-				} else {
-					$tree{$k} = $self->_merge_trees($tree{$k}, $_->{$k});
-				}
-			} else {
-				$tree{$k} = $_->{$k};
-			}
-		}
-	}
-
-	return \%tree;
+	return Brannigan::Tree->new(@trees, $self->{$scheme});
 }
 
 =head1 CAVEATS
 
-This is the initial, "quick" version of Brannigan, so pretty much no
+This is an early, "quick" version of Brannigan, so pretty much no
 checks are made on created schemes, so if you incorrectly define your
 schemes, Brannigan will not croak and processing will probably fail. Also, there
 is no support yet for recursive inheritance or any crazy inheritance
