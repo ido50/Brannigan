@@ -103,8 +103,6 @@ is_deeply($data, {
 	'_rejects' => {
 		'text' => [
 			'required(1)',
-			'min_length(10)',
-			'validate'
 		],
 		'subject' => [
 			'length_between(3, 40)'
@@ -114,7 +112,6 @@ is_deeply($data, {
 			'value_between(1000000000, 2000000000)'
 		]
 	},
-	'text' => undef,
 	'day' => 13,
 	'mon' => 12,
 	'id' => 300000000,
@@ -146,7 +143,10 @@ is_deeply($data3, {
 		'_rejects' => {
 			'id' => [
 				'forbidden(1)'
-			]
+			],
+			'text' => [
+				'required(1)'
+			],
 		},
 		'subject' => 'subject edited',
 		'section' => 'general',
@@ -154,15 +154,14 @@ is_deeply($data3, {
 	}, 'inheriting scheme with rejects');
 
 my $data4 = $b->process('edit_post', {
-	subject		=> undef,
 	id		=> undef,
 	section		=> 1,
+	text		=> 'lorem ipsum oh shit my parents are here',
 });
 
 is_deeply($data4, {
-		'subject' => undef,
-		'id' => undef,
-		'section' => 'reviews'
+		'section' => 'reviews',
+		'text' => 'lorem ipsum oh shit my parents are here',
 	}, 'inheriting scheme with no rejects');
 
 done_testing();

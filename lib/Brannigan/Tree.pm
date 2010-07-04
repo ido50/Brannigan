@@ -3,7 +3,6 @@ package Brannigan::Tree;
 use strict;
 use warnings;
 use Brannigan::Validations;
-use Data::Dumper;
 
 =head1 NAME
 
@@ -128,16 +127,17 @@ sub parse {
 		next if !defined $params->{$_} || $params->{$_} eq '';
 		
 		# is there a reference to this parameter in the scheme?
-		my $ref = undef;
-		foreach my $p (keys %{$param_rules->{$_}}) {
+		my @refs;
+		foreach my $p (keys %$param_rules) {
 			next unless $p =~ m!^/([^/]+)/$!;
 			my $re = qr/$1/;
 			next unless m/$re/;
-			$ref = 1;
+			push(@refs, $param_rules->{$p});
 		}
-		$ref = 1 if $param_rules->{$_};
-		next if !$ref && $self->{ignore_missing};
-		unless ($ref && $self->{ignore_missing}) {
+		push(@refs, $param_rules->{$_}) if $param_rules->{$_};
+		
+		next if scalar @refs == 0 && $self->{ignore_missing};
+		unless (scalar @refs && $self->{ignore_missing}) {
 			# pass the parameter as is
 			$data->{$_} = $params->{$_};
 			next;
@@ -145,7 +145,7 @@ sub parse {
 
 		# is this a hash-ref or an array-ref or just a scalar?
 		if (ref $params->{$_} eq 'HASH') {
-			my $pd = $self->parse($params->{$_}, $param_rules->{$_}->{keys});
+			my $pd = $self->parse($params->{$_}, $self->_merge_trees(@refs)->{keys});
 			foreach my $k (keys %$pd) {
 				$data->{$_}->{$k} = $pd->{$k};
 			}
@@ -153,7 +153,7 @@ sub parse {
 			foreach my $val (@{$params->{$_}}) {
 				# we need to parse this value with the rules
 				# in the 'values' key
-				my $pd = $self->parse({ param => $val }, { param => $param_rules->{$_}->{values} });
+				my $pd = $self->parse({ param => $val }, { param => $self->_merge_trees(@refs)->{values} });
 				push(@{$data->{$_}}, $pd->{param});
 			}
 		} else {
@@ -217,6 +217,7 @@ sub parse {
 				next;
 			}
 			
+			# parse the data
 			my $parsed = $group_rules->{$_}->{parse}->(@data);
 			foreach my $k (keys %$parsed) {
 				if (ref $parsed->{$k} eq 'ARRAY') {
@@ -251,11 +252,11 @@ sub _validate_param {
 	# (either undef or an empty string), then don't bother checking
 	# any validations. If yes, and it has no value, do the same.
 	return undef if !$validations->{required} && (!defined $value || $value eq '');
-	return ('required') if $validations->{required} && (!defined $value || $value eq '');
+	return ['required(1)'] if $validations->{required} && (!defined $value || $value eq '');
 
 	# is this parameter forbidden? if yes, and it has a value,
 	# don't bother checking any other validations.
-	return ('forbidden') if $validations->{forbidden} && defined $value && $value ne '';
+	return ['forbidden(1)'] if $validations->{forbidden} && defined $value && $value ne '';
 
 	# is this a scalar, array or hash parameter?
 	if ($validations->{hash}) {
@@ -299,6 +300,9 @@ sub _validate_scalar {
 sub _validate_array {
 	my ($self, $param, $value, $validations) = @_;
 
+	# if this isn't an array, don't bother checking any other validation method
+	return { _self => ['array(1)'] } unless ref $value eq 'ARRAY';
+
 	# invoke validations on the parameter itself
 	my $rejects = {};
 	my $_self = $self->_validate_scalar($param, $value, $validations, 'array');
@@ -317,6 +321,9 @@ sub _validate_array {
 
 sub _validate_hash {
 	my ($self, $param, $value, $validations) = @_;
+
+	# if this isn't a hash, don't bother checking any other validation method
+	return { _self => ['hash(1)'] } unless ref $value eq 'HASH';
 
 	# invoke validations on the parameter itself
 	my $rejects = {};
@@ -362,6 +369,13 @@ sub _merge_trees {
 					$tree{$k} = $class->_merge_trees($tree{$k}, $_->{$k});
 				}
 			} else {
+				if ($k eq 'forbidden' && $_->{$k}) {
+					# remove required, if there was such a rule
+					delete $tree{'required'};
+				} elsif ($k eq 'required' && $_->{$k}) {
+					# remove forbidden, if there was such a rule
+					delete $tree{'forbidden'};
+				}
 				$tree{$k} = $_->{$k};
 			}
 		}
