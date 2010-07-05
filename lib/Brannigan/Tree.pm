@@ -13,13 +13,13 @@ Brannigan::Tree - A Brannigan validation/parsing scheme tree, possibly built fro
 This module is used internally by L<Brannigan>. Basically, a tree is a
 validation/parsing scheme in its "final", workable structure, taking
 any inherited schemes into account. The actual validation and parsing
-of input is done in this module.
+of input is done by this module.
 
 =head1 MODULES
 
-=head2 new( $tree )
+=head2 new( $scheme | @schemes )
 
-Creates a new Brannigan::Tree instance.
+Creates a new Brannigan::Tree instance from one or more schemes.
 
 =cut
 
@@ -57,12 +57,7 @@ sub process {
 =head2 validate( \%params )
 
 Validates the hash-ref of input parameters and returns a hash-ref of rejects
-(i.e. failed validation methods) for each parameter. Optionally receives
-a hash-ref of custom validation methods (incomplete feature, to be completed
-in the next release).
-
-There is no need to call this method specifically, as it automatically
-called by the C<process()> method.
+(i.e. failed validation methods) for each parameter.
 
 =cut
 
@@ -99,7 +94,12 @@ sub validate {
 	return $rejects;
 }
 
-=head2 parse( \%params, \%rules )
+=head2 parse( \%params, \%param_rules, [\%group_rules] )
+
+Receives a hash-ref of parameters, a hash-ref of parameter rules (this is
+the 'params' part of a scheme) and optionally a hash-ref of group rules
+(this is the 'groups' part of a scheme), parses the parameters according
+to these rules and returns a hash-ref of all the parameters after parsing.
 
 =cut
 
@@ -240,6 +240,11 @@ sub parse {
 
 =head2 _validate_param( $param, $value, \%validations )
 
+Receives the name of a parameter, its value, and a hash-ref of validations
+to assert against. Returns a list of validations that failed for this
+parameter. Depending on the type of the parameter (either scalar, hash
+or array), this method will call one of the following three methods.
+
 =cut
 
 sub _validate_param {
@@ -267,6 +272,15 @@ sub _validate_param {
 		return $self->_validate_scalar($param, $value, $validations);
 	}
 }
+
+=head2 _validate_scalar( $param, $value, \%validations, [$type] )
+
+Receives the name of a parameter, its value, and a hash-ref of validations
+to assert against. Returns a list of all failed validations for this
+parameter. If the parameter is a child of a hash/array parameter, then
+C<$type> must be provided with either 'hash' or 'array'.
+
+=cut
 
 sub _validate_scalar {
 	my ($self, $param, $value, $validations, $type) = @_;
@@ -297,6 +311,14 @@ sub _validate_scalar {
 	return scalar @rejects ? [@rejects] : undef;
 }
 
+=head2 _validate_array( $param, $value, \%validations )
+
+Receives the name of an array parameter, its value, and a hash-ref of validations
+to assert against. Returns a list of validations that failed for this
+parameter.
+
+=cut
+
 sub _validate_array {
 	my ($self, $param, $value, $validations) = @_;
 
@@ -318,6 +340,14 @@ sub _validate_array {
 
 	return $rejects;
 }
+
+=head2 _validate_hash( $param, $value, \%validations )
+
+Receives the name of a hash parameter, its value, and a hash-ref of validations
+to assert against. Returns a list of validations that failed for this
+parameter.
+
+=cut
 
 sub _validate_hash {
 	my ($self, $param, $value, $validations) = @_;
@@ -390,7 +420,7 @@ L<Brannigan>, L<Brannigan::Validations>.
 
 =head1 AUTHOR
 
-Ido Perlmuter, C<< <ido at ido50.net> >>
+Ido Perlmuter, C<< <ido at ido50 dot net> >>
 
 =head1 BUGS
 
@@ -425,11 +455,6 @@ L<http://cpanratings.perl.org/d/Brannigan>
 L<http://search.cpan.org/dist/Brannigan/>
 
 =back
-
-=head1 ACKNOWLEDGEMENTS
-
-Brannigan is inspired by L<Oogly> (Al Newkirk) and the "Ketchup" jQuery
-validation plugin (L<http://demos.usejquery.com/ketchup-plugin/>).
 
 =head1 LICENSE AND COPYRIGHT
 

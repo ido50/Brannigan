@@ -208,7 +208,7 @@ sub hash {
 	return $boolean ? ref $value eq 'HASH' ? 1 : undef : ref $value eq 'HASH' ? undef : 1;
 }
 
-=head2 one_of( $value, @values)
+=head2 one_of( $value, @values )
 
 Makes sure a parameter's value is one of the provided acceptable values.
 
@@ -230,7 +230,7 @@ L<Brannigan>, L<Brannigan::Tree>.
 
 =head1 AUTHOR
 
-Ido Perlmuter, C<< <ido at ido50.net> >>
+Ido Perlmuter, C<< <ido at ido50 dot net> >>
 
 =head1 BUGS
 
@@ -265,11 +265,6 @@ L<http://cpanratings.perl.org/d/Brannigan>
 L<http://search.cpan.org/dist/Brannigan/>
 
 =back
-
-=head1 ACKNOWLEDGEMENTS
-
-Brannigan is inspired by L<Oogly> (Al Newkirk) and the "Ketchup" jQuery
-validation plugin (L<http://demos.usejquery.com/ketchup-plugin/>).
 
 =head1 LICENSE AND COPYRIGHT
 
