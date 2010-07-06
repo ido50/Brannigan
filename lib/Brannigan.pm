@@ -87,13 +87,18 @@ functionality, so don't be alarmed by the size of this thing.
 			},
 			somearray => {
 				array => 1,
-				integer => 1,
+				min_length => 3,
+				values => {
+					integer => 1,
+				},
 			},
 			somehash => {
 				hash => 1,
-				params => {
-					en => {
+				keys => {
+					_all => {
 						required => 1,
+					},
+					en => {
 						exact_length => 10,
 					},
 					he => {
@@ -551,6 +556,10 @@ just take a look at this:
 So, we have a pictures array that every value in it is a hash-ref with a
 filename key and a source key whose value is a hash-ref with a website
 key and a license key.
+
+The _all "parameter" can be used in a scheme to define rules that apply
+to all of the parameters in that level. This can either be used directly
+in the 'params' key of the scheme, or in the 'keys' key of a hash parameter.
 
 =item * groups
 
