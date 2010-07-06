@@ -175,12 +175,12 @@ the main problems that web applications face:
 
 =over 2
 
-=item * simple user input
+=item * Simple user input
 
 Brannigan can validate and parse simple, "flat", user input, possibly
 coming from web forms.
 
-=item * complex data structures
+=item * Complex data structures
 
 Brannigan can validate and parse complex data structures, possibly
 deserialized from JSON or XML requests sent to web services and APIs.
@@ -208,32 +208,26 @@ you to do so easily by creating another scheme which gets all the properties
 of the base scheme, only changing whatever it is needs changing (and possibly
 adding specific properties that don't exist in the base scheme).
 
-Brannigan works by receiving a hash-ref of input parameters, asserting
-all validation methods required for each parameter, and parsing every
-parameter (or group of parameters, see below). Brannigan then returns
-a hash-ref with all parsed input parameters, and a '_rejects' key with
-failed validations (see more info below).
-
 =head1 HOW BRANNIGAN WORKS
 
-In essence, Brannigan works in three stages, which all boil down to one
-single command:
+In essence, Brannigan works in three stages (which all boil down to one
+single command):
 
 =over
 
-=item * input stage
+=item * Input stage
 
-Brannigan receives a hash-ref of input parameters from the user, or a
-hash-ref based data structure, and the name of a scheme to validate against.
+Brannigan receives a hash-ref of input parameters, or a hash-ref based
+data structure, and the name of a scheme to validate against.
 
-=item * data validation
+=item * Data validation
 
-Brannigan applies all validation methods on the input data, and generates
-a hash-ref of rejected parameters. For every parameter in the hash-ref,
-a list of failed validations is created in an array-ref (see more info
-in the HOW SCHEMES WORK section).
+Brannigan applies all validation methods defined in the scheme on the
+input data, and generates a hash-ref of rejected parameters. For every
+parameter in the hash-ref, a list of failed validations is created in an
+array-ref.
 
-=item * data parsing
+=item * Data parsing
 
 Regardless of the previous stage, every parsing method defined in the scheme
 is applied on the relevant data. The data resulting from these parsing
@@ -251,12 +245,20 @@ to do in case rejects are present.
 
 =back
 
-=head2 HOW SCHEMES WORK
+=head2 HOW SCHEMES LOOK
 
 The validation/parsing scheme defines the structure of the data you're
 expecting to receive, along with information about the way it should be
-validated and parsed. A scheme is a hash-ref based data structure that
-has the following keys:
+validated and parsed. Schemes are created by passing them to the Brannigan
+constructor. You can pass as many schemes as you like, and these schemes
+can inherit from one another. You can create the Brannigan object that
+gets these schemes wherever you want. Maybe in a controller of your web
+app that will directly use this object to validate and parse input it
+gets, or maybe in a special validation class that will hold all schemes.
+It doesn't matter where, as long as you make the object available for
+your application.
+
+A scheme is a hash-ref based data structure that has the following keys:
 
 =over
 
@@ -270,7 +272,7 @@ Boolean value indicating whether input parameters that are not referenced
 in the scheme should be added to the parsed output or not. Optional,
 defaults to false (i.e. parameters missing from the scheme will be added
 to the output as-is). You might find it is probably a good idea to turn
-this on, so any input parameters you're not expecting receive from users
+this on, so any input parameters you're not expecting to receive from users
 are ignored.
 
 =item * inherits_from
@@ -334,7 +336,7 @@ in our 'subject' example, the rejects hash-ref will have something like this:
 
 	subject => ['length_between(3, 10)', 'validate']
 
-It is more than possible that the way input parameters are passed to you
+It is more than possible that the way input parameters are passed to your
 application will not be exactly the way you'll eventually use them. That's
 where parsing methods can come in handy. Brannigan doesn't have any
 built-in parsing methods (obviously), so you must create these by yourself,
@@ -424,14 +426,14 @@ we have the following rules in our scheme:
 When validating and parsing the 'subject' parameter, Brannigan will
 automatically merge both of these references to the subject parameter,
 giving preference to the direct reference, so the actual structure on
-which the parameter will be validates is as follows:
+which the parameter will be validated is as follows:
 
 	subject => {
 		required => 0,
 		length_between => [3, 10],
 	}
 
-If you're parameter matches more than one regex rule, they will all be
+If your parameter matches more than one regex rule, they will all be
 merged, but there's no way (yet) to ensure in which order these regex
 rules will be merged.
 
@@ -485,7 +487,7 @@ might be defined:
 	}
 
 What are we seeing this time? We see that the 'pictures' parameter must
-be a hash, with no less than one item (i.e. value) and no more than five
+be an array, with no less than one item (i.e. value) and no more than five
 items (notice that we're using the same C<length_between()> method from
 before, but in the context of an array, it doesn't validate against
 character count but item count). We also see that every value in the
@@ -503,7 +505,7 @@ hash, then the key will simply be the name of that key. If it's an array,
 it will be its index. For example, let's say the 'first_name' key under
 the 'name' parameter failed the C<length_between(3, 10)> validation method,
 and that the 'last_name' key was not present (and hence failed the
-C<required()> validatin). Also, let's say the 'pictures' parameter failed
+C<required()> validation). Also, let's say the 'pictures' parameter failed
 the C<length_between(1, 5)> validation (for the sake of the argument, let's
 say it had 6 items instead of the maximum allowed 5), and that the 2nd
 item failed the C<min_length(3)> validation, and the 6th item failed the
@@ -615,26 +617,18 @@ create a 'urls' group such as this:
 
 =back
 
-Schemes are created by passing them to the Brannigan constructor. You can
-pass as many schemes as you like, and these schemes can inherit from one
-another. You can create the Brannigan object that gets these schemes wherever
-you want. Maybe in a controller of your web app that will directly use
-this object to validate and parse input it gets, or maybe in a special
-validation class that will hold all schemes. It doesn't matter where,
-as long as you make the object available for your application.
+=head2 NOTES ABOUT PARSE METHODS
 
-=head2 HOW THE PARSE METHOD WORKS
-
-As stated earlier, your C<parse> methods are expected to return a hash-ref
+As stated earlier, your C<parse()> methods are expected to return a hash-ref
 of key-value pairs. Brannigan collects all of these key-value pairs
 and merges them into one big hash-ref (along with all the non-parsed
 parameters).
 
-Brannigan actually allows you to have your C<parse> methods be two-leveled.
+Brannigan actually allows you to have your C<parse()> methods be two-leveled.
 This means that a value in a key-value pair in itself can be a hash-ref
 or an array-ref. This allows you to use the same key in different places,
 and Brannigan will automatically aggregate all of these places, just like
-in the first level. So, for example, suppose you're scheme has a regex
+in the first level. So, for example, suppose your scheme has a regex
 rule that matches parameters like 'tag_en' and 'tag_he'. Your parse
 method might return something like C<< { tags => { en => 'an english tag' } } >>
 when it matches the 'tag_en' parameter, and something like
@@ -666,7 +660,7 @@ any errors. It's your job to decide what to do, and that's a good thing.
 
 Example schemes, input and output can be seen in L<Brannigan::Examples>.
 
-=head2 SO WHICH VALIDATION METHODS ARE PROVIDED?
+=head2 BUILT-IN VALIDATION METHODS
 
 For a list of all validation methods provided by Brannigan, check
 L<Brannigan::Validations>.
@@ -754,28 +748,28 @@ versions of Brannigan:
 
 =over
 
-=item * cross-scheme custom validation/parsing methods
+=item * Cross-scheme custom validation/parsing methods
 
 Add an option to define custom validate/parse methods in the Brannigan
 object that can be used in the schemes as if they were built-in methods.
 
-=item * support for third-party validation methods
+=item * Support for third-party validation methods
 
 Add support for loading validation methods defined in third-party modules
-(such as L<Brannigan::Validations>) and using theme in schemes as if they
+(written like L<Brannigan::Validations>) and using them in schemes as if they
 were built-in methods.
 
-=item * validate schemes by yourself
+=item * Validate schemes by yourself
 
 Have Brannigan use itself to validate the schemes it receives from the
 developers (i.e. users of this module).
 
-=item * support loading schemes from JSON/XML
+=item * Support loading schemes from JSON/XML
 
 Allow loading schemes from JSON/XML files or any other source. Does that
 make any sense?
 
-=item * something to aid rejects traversal
+=item * Something to aid rejects traversal
 
 Find something that would make traversal of the rejects list easier or
 whatever.
