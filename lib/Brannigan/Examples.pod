@@ -1,0 +1,15 @@
+=head1 NAME
+
+Brannigan::Examples - Example schemes, input and output for Brannigan.
+
+=head1 DESCRIPTION
+
+The following document provides examples for L<Brannigan> usage. Brannigan
+is a system for validatin and parsing input, targeted at web applications.
+It can validate and parse both simple user input and complex data structures.
+
+In this document you will find example schemes and input/output to/from
+these schemes.
+
+The examples in this document are directly derived from the tests provided
+with the Brannigan distrubutions.
