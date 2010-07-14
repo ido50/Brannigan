@@ -1,8 +1,24 @@
 Revision history for Brannigan
 
 {{$NEXT}}
+	- Small bug fixes
+	- Restructured and expanded modules documentation
+	- Completed the examples POD page
 
 0.3       2010-07-06 19:33:16 Asia/Jerusalem
+	- Added support for complex data structures (hash-refs and array-refs with nesting support)
+	- Added support for default values/methods
+	- Added support for creating rules for parameters based on regular expressions (both in 'params' and in 'groups')
+	- Added support for the '_all' meta-parameter
+	- Created a test for complex data schemes
+	- Removed the datetime() validation, it didn't work
+	- Fixed bug where required parameters that weren't provided weren't added to the rejects list
+	- Fixed bug where the forbidden rule didn't tramp on inherited required rules (and vica versa)
+	- Heavily modified and updated the documentation of the modules
+	- Added an examples POD page
+	- Various bug fixes
+	- Added the one_of validation method
+	- Modified every length related validation methods to support array references
 
 0.2       2010-06-26 04:00:53 Asia/Jerusalem
 	- Fixed some stupid documentation mistakes.

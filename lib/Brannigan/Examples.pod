@@ -638,4 +638,308 @@ Our C<$output> will be:
 		'picture_1' => 'http://www.example.com/images/default.png'
 	}
 
-Umm, well, I'll probably complete this document soon.
+Let's now modify the input like so:
+
+	$input->{education}->[0]->{honors} = ['Valedictorian', "Teacher's Pet", "The Dean's Suckup"];
+	$input->{education}->[1]->{honors} = 'Woooooeeeee!';
+	$input->{other_info}->{social} = [{ website => 'facebook', user_id => 123412341234 }, { website => 'noogie.com', user_id => 'snoogens' }];
+
+Processing this input with the 'complex_inherit' scheme yields:
+
+	{
+		'education' => [
+			{
+				'start_year' => 1990,
+				'honors' => [
+					'Valedictorian',
+					'Teacher\'s Pet',
+					'The Dean\'s Suckup'
+				],
+				'type' => 'e',
+				'school' => 'First Elementary School of Somewhere',
+				'end_year' => 1996
+			},
+			{
+				'start_year' => 1996,
+				'honors' => 'Woooooeeeee!',
+				'type' => 'f',
+				'school' => 'Sch',
+				'end_year' => 3000
+			}
+		],
+		'name' => {
+			'last_name' => 'One',
+			'first_name' => 'Some'
+		},
+		'death_date' => {
+			'mon' => 12,
+			'day' => 12,
+			'year' => 2112
+		},
+		'id_num' => '012345678',
+		'picture_2' => 'http://www.example.com/images/mypic.jpg',
+		'birth_date' => {
+			'mon' => -5,
+			'day' => 32,
+			'year' => 1984
+		},
+		'phones' => {
+			'mobile' => 'what?',
+			'home' => '123-1234567'
+		},
+		'other_info' => {
+			'social' => [
+				{
+					'website' => 'facebook',
+					'user_id' => '123412341234'
+				},
+				{
+					'website' => 'noogie.com',
+					'user_id' => 'snoogens'
+				}
+			],
+			'bio' => {
+				'en' => 'Born, lives, will die.',
+				'he' => 'Nolad, Chai, Yamut.'
+			}
+		},
+		'_rejects' => {
+			'education' => {
+				'1' => {
+					'honors' => {
+						'_self' => [
+							'array(1)'
+						]
+					},
+					'type' => [
+						'one_of(Elementary, High School, College/University)'
+					],
+					'school' => [
+						'min_length(4)'
+					],
+					'end_year' => [
+						'value_between(1900, 2100)'
+					]
+				},
+				'0' => {
+					'honors' => {
+						'2' => [
+							'length_between(5, 15)'
+						]
+					}
+				}
+			},
+			'death_date' => {
+				'year' => [
+					'value_between(1900, 2100)'
+				]
+			},
+			'picture_2' => [
+				'max_length(5)'
+			],
+			'phones' => {
+				'mobile' => [
+					'validate'
+				]
+			},
+			'birth_date' => {
+				'mon' => [
+					'integer(1)',
+					'value_between(1, 12)'
+				],
+				'day' => [
+					'value_between(1, 31)'
+				]
+			},
+			'employment' => [
+				'required(1)'
+			],
+			'other_info' => {
+				'social' => {},
+				'bio' => {
+					'en' => [
+						'length_between(100, 300)'
+					],
+					'fr' => [
+						'required(1)'
+					],
+					'he' => [
+						'length_between(100, 300)'
+					]
+				}
+			},
+			'picture_3' => [
+				'max_length(5)'
+			],
+			'picture_4' => [
+				'max_length(5)',
+				'validate'
+			],
+			'picture_1' => [
+				'required(1)'
+			]
+		},
+		'picture_3' => 'http://www.example.com/images/mypic.png',
+		'picture_4' => 'http://www.example.com/images/mypic.gif',
+		'url' => 'http://www.example.com/?id=012345678&One',
+		'pictures' => [
+			'http://www.example.com/images/mypic.jpg',
+			'http://www.example.com/images/mypic.png',
+			'http://www.example.com/images/mypic.gif',
+			'http://www.example.com/images/default.png'
+		],
+		'picture_1' => 'http://www.example.com/images/default.png'
+	}
+
+Now let's take the original input (before we changed it), and modify it like so:
+
+	$input->{some_other_thing} = "I'd like to tell the whole world that I'm a little teapot.";
+
+Processing with 'complex_inherit_2' results in the following output:
+
+	{
+		'education' => [
+			{
+				'start_year' => 1990,
+				'honors' => [
+					'Valedictorian',
+					'Teacher\'s Pet',
+					'The Dean\'s Suckup'
+				],
+				'type' => 'e',
+				'school' => 'First Elementary School of Somewhere',
+				'end_year' => 1996
+			},
+			{
+				'start_year' => 1996,
+				'honors' => 'Woooooeeeee!',
+				'type' => 'f',
+				'school' => 'Sch',
+				'end_year' => 3000
+			}
+		],
+		'dates' => 'This guy was born 1984--5-32, unfortunately, he died 2112-12-12',
+		'name' => {
+			'last_name' => 'One',
+			'first_name' => 'Some'
+		},
+		'death_date' => {
+			'mon' => 12,
+			'day' => 12,
+			'year' => 2112
+		},
+		'id_num' => '012345678',
+		'picture_2' => 'http://www.example.com/images/mypic.jpg',
+		'birth_date' => {
+			'mon' => -5,
+			'day' => 32,
+			'year' => 1984
+		},
+		'phones' => {
+			'mobile' => 'what?',
+			'home' => '123-1234567'
+		},
+		'other_info' => {
+			'social' => [
+				{
+					'website' => 'facebook',
+					'user_id' => '123412341234'
+				},
+				{
+					'website' => 'noogie.com',
+					'user_id' => 'snoogens'
+				}
+			],
+			'bio' => {
+				'en' => 'Born, lives, will die.',
+				'he' => 'Nolad, Chai, Yamut.'
+			}
+		},
+		'_rejects' => {
+			'education' => {
+				'1' => {
+					'honors' => {
+						'_self' => [
+							'array(1)'
+						]
+					},
+					'type' => [
+						'one_of(Elementary, High School, College/University)'
+					],
+					'school' => [
+						'min_length(4)'
+					],
+					'end_year' => [
+						'value_between(1900, 2100)'
+					]
+				},
+				'0' => {
+					'honors' => {
+						'2' => [
+							'length_between(5, 15)'
+						]
+					}
+				}
+			},
+			'death_date' => {
+				'year' => [
+					'value_between(1900, 2100)'
+				]
+			},
+			'picture_2' => [
+				'max_length(5)'
+			],
+			'phones' => {
+				'mobile' => [
+					'validate'
+				]
+			},
+			'birth_date' => {
+				'mon' => [
+					'integer(1)',
+					'value_between(1, 12)'
+				],
+				'day' => [
+					'value_between(1, 31)'
+				]
+			},
+			'employment' => [
+				'required(1)'
+			],
+			'other_info' => {
+				'social' => {},
+				'bio' => {
+					'en' => [
+						'length_between(100, 300)'
+					],
+					'fr' => [
+						'required(1)'
+					],
+					'he' => [
+						'length_between(100, 300)'
+					]
+				}
+			},
+			'picture_3' => [
+				'max_length(5)'
+			],
+			'picture_4' => [
+				'max_length(5)',
+				'validate'
+			],
+			'picture_1' => [
+				'required(1)'
+			]
+		},
+		'picture_3' => 'http://www.example.com/images/mypic.png',
+		'picture_4' => 'http://www.example.com/images/mypic.gif',
+		'url' => 'http://www.example.com/?id=012345678&One',
+		'some_other_thing' => 'I\'d like to tell the whole world that I like to wear women\'s clothing.',
+		'pictures' => [
+			'http://www.example.com/images/mypic.jpg',
+			'http://www.example.com/images/mypic.png',
+			'http://www.example.com/images/mypic.gif',
+			'http://www.example.com/images/default.png'
+		],
+		'picture_1' => 'http://www.example.com/images/default.png'
+	}

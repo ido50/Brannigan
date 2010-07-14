@@ -844,7 +844,7 @@ whatever.
 
 =head1 SEE ALSO
 
-L<Brannigan::Validations>, L<Brannigan::Tree>.
+L<Brannigan::Validations>, L<Brannigan::Tree>, L<Brannigan::Examples>.
 
 =head1 AUTHOR
 
