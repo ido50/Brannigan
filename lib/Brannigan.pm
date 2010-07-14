@@ -85,6 +85,9 @@ functionality, so don't be alarmed by the size of this thing.
 					...
 				},
 			},
+			picture_1 => {
+				default => 'http://www.example.com/avatar.png',
+			},
 			somearray => {
 				array => 1,
 				min_length => 3,
@@ -168,9 +171,8 @@ functionality, so don't be alarmed by the size of this thing.
 
 =head1 DESCRIPTION
 
-Brannigan is an attempt to ease the pain of collecting input parameters
-in web applications, validating them and finally (if necessary),
-parsing them before actually using them. It's designed to answer both of
+Brannigan is an attempt to ease the pain of collecting, validating and
+parsing input parameters in web applications. It's designed to answer both of
 the main problems that web applications face:
 
 =over 2
@@ -183,7 +185,7 @@ coming from web forms.
 =item * Complex data structures
 
 Brannigan can validate and parse complex data structures, possibly
-deserialized from JSON or XML requests sent to web services and APIs.
+deserialized from JSON or XML data sent to web services and APIs.
 
 =back
 
@@ -199,14 +201,15 @@ flexible.
 Check the synopsis section for an example of such a structure. I call this
 structure a validation/parsing scheme. Schemes can inherit all the properties
 of other schemes, which allows you to be much more flexible in certain
-situations. As per the synopsis example, imagine you have a blogging
-application. The base scheme defines all validations and parsing needed
-to create a new blog post from a user's input. When editing a post,
-however, some parameters that were required when creating the post might
-not be required now (so you can just use older values). Inheritance allows
-you to do so easily by creating another scheme which gets all the properties
-of the base scheme, only changing whatever it is needs changing (and possibly
-adding specific properties that don't exist in the base scheme).
+situations. Imagine you have a blogging application. A base scheme might
+define all validations and parsing needed to create a new blog post from
+a user's input. When editing a post, however, some parameters that were
+required when creating the post might not be required now (so you can
+just use older values), and maybe new parameters are introduced. Inheritance
+helps you avoid repeating yourself. You can another scheme which gets
+all the properties of the base scheme, only changing whatever it is needs
+changing (and possibly adding specific properties that don't exist in
+the base scheme).
 
 =head1 HOW BRANNIGAN WORKS
 
@@ -215,23 +218,25 @@ single command):
 
 =over
 
-=item * Input stage
+=item * Input stage and preparation
 
 Brannigan receives a hash-ref of input parameters, or a hash-ref based
-data structure, and the name of a scheme to validate against.
+data structure, and the name of a scheme to validate against. Brannigan
+then loads the scheme and prepares it (by merging it with inherited schemes)
+for later processing.
 
 =item * Data validation
 
-Brannigan applies all validation methods defined in the scheme on the
+Brannigan invokes all validation methods defined in the scheme on the
 input data, and generates a hash-ref of rejected parameters. For every
-parameter in the hash-ref, a list of failed validations is created in an
+parameter in this hash-ref, a list of failed validations is created in an
 array-ref.
 
 =item * Data parsing
 
 Regardless of the previous stage, every parsing method defined in the scheme
 is applied on the relevant data. The data resulting from these parsing
-methods, along with the values of all input data for which no parsing
+methods, along with the values of all input parameters for which no parsing
 methods were defined, is returned to the user in a hash-ref. This hash-ref
 also includes a _rejects key whose value is the rejects hash created in
 the previous stage.
@@ -280,7 +285,7 @@ are ignored.
 Either a scalar naming a different scheme or an array-ref of scheme names.
 The new scheme will inherit all the properties of the scheme(s) defined
 by this key. If an array-ref is provided, the scheme will inherit their
-properties in the order they are defined. See the CAVEATS section for some
+properties in the order they are defined. See the L</"CAVEATS"> section for some
 "heads-up" about inheritance.
 
 =item * params
@@ -289,7 +294,7 @@ The params key is the most important part of the scheme, as it defines
 the expected input. This key takes a hash-ref containing the names of
 input parameters. Every such name (i.e. key) in itself is also a hash-ref.
 This hash-ref defines the necessary validation methods to assert for this
-parameter, and optionally a parse method. The idea is this: use the name
+parameter, and optionally a 'parse' and 'default' method. The idea is this: use the name
 of the validation method as the key, and the appropriate values for this
 method as the value of this key. For example, if a certain parameter, let's
 say 'subject', must be between 3 to 10 characters long, then your scheme
@@ -299,10 +304,9 @@ will contain:
 		length_between => [3, 10]
 	}
 
-These values (3 and 10) will be passed to the C<length_between()> validation
-method, along with the actual value of the parameter from the input, that
-will be automatically prepended to the C<length_between()> method's
-parameters. Suppose a certain subject sent to your app failed the
+The 'subject' parameter's value (from the user input), along with both of
+the values defined above (3 and 10) will be passed to the C<length_between()> validation
+method. Now, suppose a certain subject sent to your app failed the
 C<length_between()> validation; then the rejects hash-ref described
 earlier will have something like this:
 
@@ -311,13 +315,13 @@ earlier will have something like this:
 Notice the values of the C<length_between()> validation method were added
 to the string, so you can easily know why the parameter failed the validation.
 
-Aside for the built-in validation methods that come with Brannigan, a
-custom validation method can be defined for each parameter. This is done
-by adding a 'validate' key to the parameter, and an anonymous subroutine
-as the value. As with built-in methods, the parameter's value will be
-automatically sent to this method. So, for example, if the subject
-parameter from above must start with the words 'lorem ipsum', then we
-can define the subject parameter like so:
+B<Custom validation methods:> Aside for the built-in validation methods
+that come with Brannigan, a custom validation method can be defined for
+each parameter. This is done by adding a 'validate' key to the parameter,
+and an anonymous subroutine as the value. As with built-in methods, the
+parameter's value will be automatically sent to this method. So, for
+example, if the subject parameter from above must start with the words
+'lorem ipsum', then we can define the subject parameter like so:
 
 	subject => {
 		length_between => [3, 10],
@@ -336,7 +340,44 @@ in our 'subject' example, the rejects hash-ref will have something like this:
 
 	subject => ['length_between(3, 10)', 'validate']
 
-It is more than possible that the way input parameters are passed to your
+B<Default values:> For your convenience, Brannigan allows you to set default
+values for parameters that are not required (so, if you set a default
+value for a parameter, don't add the C<required()> validation method to
+it). There are two ways to add a default value: either directly, or
+through an anonymous subroutine (just like the custom validation method).
+For example, maybe we'd like the 'subject' parameter to have a default
+value of 'lorem ipsum dolor sit amet'. Then we can have the following definition:
+
+	subject => {
+		length_between => [3, 10],
+		validate => sub {
+			my $value = shift;
+
+			return $value =~ m/^lorem ipsum/ ? 1 : 0;
+		},
+		default => 'lorem ipsum dolor sit amet'
+	}
+
+Alternatively, you can give a parameter a generated default value by using
+an anonymous subroutine, like so:
+
+	subject => {
+		length_between => [3, 10],
+		validate => sub {
+			my $value = shift;
+
+			return $value =~ m/^lorem ipsum/ ? 1 : 0;
+		},
+		default => sub {
+			return int(rand(100000000));
+		}
+	}
+
+Notice that default values are added to missing parameters only at the
+parsing stage (i.e. stage 3 - after the validation stage), so validation
+methods do not apply to default values.
+
+B<Parse methods:> It is more than possible that the way input parameters are passed to your
 application will not be exactly the way you'll eventually use them. That's
 where parsing methods can come in handy. Brannigan doesn't have any
 built-in parsing methods (obviously), so you must create these by yourself,
@@ -347,9 +388,9 @@ and is expected to return a hash-ref of key-value pairs. You will probably
 find it that most of the time this hash-ref will only contain one key-value
 pair, and that the key will probably just be the name of the parameter. But
 note that when a parse method exists, Brannigan makes absolutely no assumptions
-of what else to do with that parameter, so you must do so yourself. After
-all parameters were parsed by Brannigan, all these little hash-refs are
-merged into one hash-ref that is returned to the application. If a parse
+of what else to do with that parameter, so you must tell it exactly how to
+return it. After all parameters were parsed by Brannigan, all these little hash-refs are
+merged into one hash-ref that is returned to the caller. If a parse
 method doesn't exist for a paramter, Brannigan will simply add it "as-is"
 to the resulting hash-ref. Returning to our subject example (which we
 defined must start with 'lorem ipsum'), let's say we want to substitute
@@ -363,6 +404,7 @@ subject definition will now look like this:
 
 			return $value =~ m/^lorem ipsum/ ? 1 : 0;
 		},
+		default => 'lorem ipsum dolor sit amet',
 		parse => sub {
 			my $value = shift;
 
@@ -383,7 +425,7 @@ you can imagine Brannigan uses the following default parse method:
 		}
 	}
 
-As of version 0.3, parameter names can also be regular expressions in the
+B<Regular expressions:> As of version 0.3, parameter names can also be regular expressions in the
 form C<'/regex/'>. Sometimes you cannot know the names of all parameters passed
 to your app. For example, you might have a dynamic web form which starts with
 a single field called 'url_1', but your app allows your visitors to dynamically
@@ -437,7 +479,7 @@ If your parameter matches more than one regex rule, they will all be
 merged, but there's no way (yet) to ensure in which order these regex
 rules will be merged.
 
-As previously stated, Brannigan can also validate and parse a little more
+B<Complex data structures:> As previously stated, Brannigan can also validate and parse a little more
 complex data structures. So, your parameter no longer has to be just a
 string or a number, but maybe a hash-ref or an array-ref. In the first
 case, you tell Brannigan the paramter is a hash-ref by adding a 'hash'
@@ -465,8 +507,8 @@ hash-ref, that it's required, and that it has two keys: first_name, whose
 length must be between 3 to 10 if it's present, and last_name, which must
 be 3 characters or more, and must be present.
 
-An array parameter, on the other hand, is a little different. Like before,
-you define the parameter as an array-ref with the 'array' key and a true
+An array parameter, on the other hand, is a little different. Similar to hashes,
+you define the parameter as an array-ref with the 'array' key with a true
 value, and a 'values' key. This key has a hash-ref of validation and parse
 methods that will be applied to EVERY value inside this array. For example,
 suppose you're receiving a 'pictures' parameter from the user as an array-ref
@@ -493,6 +535,17 @@ before, but in the context of an array, it doesn't validate against
 character count but item count). We also see that every value in the
 'pictures' array must have a minimum length of three (this time it is
 characterwise), and must match 'http://' in its beginning.
+
+Since complex data structures are supported, you can define default values
+for parameters that aren't just strings or numbers (or methods), for example:
+
+	complex_param => {
+		hash => 1,
+		keys => {
+			...
+		},
+		default => { key1 => 'def1', key2 => 'def2' }
+	}		
 
 What Brannigan returns for such structures when they fail validations is
 a little different than before. Instead of an array-ref of failed validations,
@@ -559,9 +612,22 @@ So, we have a pictures array that every value in it is a hash-ref with a
 filename key and a source key whose value is a hash-ref with a website
 key and a license key.
 
-The _all "parameter" can be used in a scheme to define rules that apply
-to all of the parameters in that level. This can either be used directly
+B<Local validations:> The _all "parameter" can be used in a scheme to define rules that apply
+to all of the parameters in a certain level. This can either be used directly
 in the 'params' key of the scheme, or in the 'keys' key of a hash parameter.
+
+	_all => {
+		required => 1
+	},
+	subject => {
+		length_between => [3, 255]
+	},
+	text => {
+		min_length => 10
+	}
+
+In the above example, both 'subject' and 'text' receive the C<required()>
+validation methods.
 
 =item * groups
 
@@ -570,7 +636,7 @@ together. This key takes a hash-ref containing the names of the groups
 (names are irrelevant, they're more for you). Every group will also take
 a hash-ref, with a rule defining which parameters are members of this group,
 and a parse method to use with these parameters (just like our custom
-parse methods from the 'params' key). This custom parse method will
+parse method from the 'params' key). This parse method will
 automatically receive the values of all the parameters in the group, in
 the order they were defined.
 
@@ -627,7 +693,7 @@ parameters).
 Brannigan actually allows you to have your C<parse()> methods be two-leveled.
 This means that a value in a key-value pair in itself can be a hash-ref
 or an array-ref. This allows you to use the same key in different places,
-and Brannigan will automatically aggregate all of these places, just like
+and Brannigan will automatically aggregate all of these occurrences, just like
 in the first level. So, for example, suppose your scheme has a regex
 rule that matches parameters like 'tag_en' and 'tag_he'. Your parse
 method might return something like C<< { tags => { en => 'an english tag' } } >>
@@ -642,10 +708,10 @@ C<< { urls => [$url_1] } >> for 'url_1' and C<< { urls => [$url_2] } >>
 for 'url_2'. The resulting hash-ref in this case will be
 C<< { urls => [$url_1, $url_2] } >>.
 
-Take note however that only two-levels are supported, and that I'm so
-tired right now that I have no idea what I'm writing.
+Take note however that only two-levels are supported, so don't go crazy
+with this.
 
-=head2 OK, BUT HOW DO I USE THIS THING?
+=head2 SO HOW DO I PROCESS INPUT?
 
 OK, so we have created our scheme(s), we know how schemes look and work,
 but what now?
@@ -660,7 +726,7 @@ any errors. It's your job to decide what to do, and that's a good thing.
 
 Example schemes, input and output can be seen in L<Brannigan::Examples>.
 
-=head2 BUILT-IN VALIDATION METHODS
+=head1 BUILT-IN VALIDATION METHODS
 
 For a list of all validation methods provided by Brannigan, check
 L<Brannigan::Validations>.
