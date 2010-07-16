@@ -1,6 +1,11 @@
 Revision history for Brannigan
 
 {{$NEXT}}
+	- Fixed bug where an empty hash-ref was returned in the rejects hashref
+	  for array type parameters
+	- Some more documentation restructures
+
+0.4       2010-07-14 19:00:25 Asia/Jerusalem
 	- Small bug fixes
 	- Restructured and expanded modules documentation
 	- Completed the examples POD page

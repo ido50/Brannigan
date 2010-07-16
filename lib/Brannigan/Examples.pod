@@ -755,7 +755,6 @@ Processing this input with the 'complex_inherit' scheme yields:
 				'required(1)'
 			],
 			'other_info' => {
-				'social' => {},
 				'bio' => {
 					'en' => [
 						'length_between(100, 300)'
@@ -907,7 +906,6 @@ Processing with 'complex_inherit_2' results in the following output:
 				'required(1)'
 			],
 			'other_info' => {
-				'social' => {},
 				'bio' => {
 					'en' => [
 						'length_between(100, 300)'

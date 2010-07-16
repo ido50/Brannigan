@@ -532,7 +532,6 @@ is_deeply($output2, {
 				'required(1)'
 			],
 			'other_info' => {
-				'social' => {},
 				'bio' => {
 					'en' => [
 						'length_between(100, 300)'
@@ -683,7 +682,6 @@ is_deeply($output3, {
 				'required(1)'
 			],
 			'other_info' => {
-				'social' => {},
 				'bio' => {
 					'en' => [
 						'length_between(100, 300)'

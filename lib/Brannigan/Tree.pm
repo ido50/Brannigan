@@ -338,7 +338,7 @@ sub _validate_array {
 		$i++;
 	}
 
-	return $rejects;
+	return scalar keys %$rejects ? $rejects : undef;
 }
 
 =head2 _validate_hash( $param, $value, \%validations )
