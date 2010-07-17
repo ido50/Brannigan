@@ -1,6 +1,8 @@
 Revision history for Brannigan
 
 {{$NEXT}}
+
+0.5       2010-07-16 16:23:32 Asia/Jerusalem
 	- Fixed bug where an empty hash-ref was returned in the rejects hashref
 	  for array type parameters
 	- Some more documentation restructures
