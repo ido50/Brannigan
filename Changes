@@ -1,6 +1,8 @@
 Revision history for Brannigan
 
 {{$NEXT}}
+
+0.7       2010-07-23 20:02:18 Asia/Jerusalem
 	- Added some info about the required() validation method
 	- Added a new validation method: is_true()
 
