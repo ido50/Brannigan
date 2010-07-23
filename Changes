@@ -1,7 +1,11 @@
 Revision history for Brannigan
 
 {{$NEXT}}
-	- Fixed bug where required validation failed erroneously when value was 0
+	- Added some info about the required() validation method
+	- Added a new validation method: is_true()
+
+0.6       2010-07-23 11:48:14 Asia/Jerusalem
+	- Fixed bug where the required() validation failed erroneously when value was false
 
 0.5       2010-07-16 16:23:32 Asia/Jerusalem
 	- Fixed bug where an empty hash-ref was returned in the rejects hashref
