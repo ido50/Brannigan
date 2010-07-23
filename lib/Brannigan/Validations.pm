@@ -32,7 +32,7 @@ parameter will not be checked.
 sub required {
 	my ($class, $value, $boolean) = @_;
 
-	return undef if $boolean && !$value;
+	return undef if $boolean && !defined $value;
 
 	return 1;
 }
