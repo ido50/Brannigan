@@ -121,6 +121,7 @@ functionality, so don't be alarmed by the size of this thing.
 			},
 			tags => {
 				regex => '/^tags_(en|he|fr)$/',
+				forbid_words => ['bad_word', 'very_bad_word'],
 				parse => sub {
 					return { tags => \@_ };
 				},
@@ -137,6 +138,17 @@ functionality, so don't be alarmed by the size of this thing.
 				forbidden => 1,
 			},
 		},
+	});
+
+	# create the custom 'forbid_words' validation method
+	$b->custom_validation('forbid_words', sub {
+		my $value = shift;
+
+		foreach (@_) {
+			return 0 if $value =~ m/$_/;
+		}
+
+		return 1;
 	});
 
 	# post a new blog post
@@ -683,6 +695,58 @@ create a 'urls' group such as this:
 
 =back
 
+=head2 CROSS-SCHEME CUSTOM VALIDATION METHODS
+
+The custom C<validate> methods are nice, but when you want to use the same
+custom validation method in different places inside your scheme, or more
+likely in different schemes altogether, repeating the definition of each
+custom scheme in every place you want to use it is not very comfortable.
+Brannigan provides a simple mechanism to create custom, named validation
+methods that can be used across schemes as if they were internal methods.
+
+The process is simple: when creating your schemes, give the names of the
+custom validation methods and their relevant supplement values as with
+every built-in validation method. For example, suppose we want to create
+a custom validation method named 'forbid_words', that makes sure a certain
+text does not contain any words we don't like it to contain. Suppose this
+will be true for a parameter named 'text'. Then we define 'text' like so:
+
+	text => {
+		required => 1,
+		forbid_words => ['curse_word', 'bad_word', 'ugly_word'],
+	}
+
+As you can see, we have provided the name of our custom method, and the words
+we want to forbid. Now we need to actually create this C<forbid_words()>
+method. We do this after we've created our Brannigan object, by using the
+C<custom_validation()> method, as in this example:
+
+	$b->custom_validation('forbid_words', sub {
+		my ($value, @forbidden) = @_;
+
+		foreach (@forbidden) {
+			return 0 if $value =~ m/$_/;
+		}
+
+		return 1;
+	});
+
+We give the C<custom_validation()> method the name of our new method, and
+an anonymous subroutine, just like in "local" custom validation methods.
+
+And that's it. Now we can use the C<forbid_words()> validation method
+across our schemes. If a paremeter failed our custom method, it will be
+added to the rejects like built-in methods. So, if 'text' failed our new
+method, our rejects hash-ref will contain:
+
+	text => [ 'forbid_words(curse_word, bad_word, ugly_word)' ]
+
+As an added bonus, you can use this mechanism to override Brannigan's
+built-in validations. Just give the name of the validation method you wish
+to override, along with the new code for this method. Brannigan gives
+precedence to cross-scheme custom validations, so your method will be used
+instead of the internal one.
+
 =head2 NOTES ABOUT PARSE METHODS
 
 As stated earlier, your C<parse()> methods are expected to return a hash-ref
@@ -764,24 +828,47 @@ Actual processing is done by L<Brannigan::Tree>.
 sub process {
 	my ($self, $scheme, $params) = @_;
 
-	return undef unless $scheme && $params && ref $params eq 'HASH' && $self->{$scheme};
+	return unless $scheme && $params && ref $params eq 'HASH' && $self->{$scheme};
 
-	my $tree = $self->_build_tree($scheme);
+	my $tree = $self->_build_tree($scheme, $self->{validations});
 
 	return $tree->process($params);
 }
 
+=head2 custom_validation( $name, $code )
+
+Receives the name of a custom validation method (C<$name>), and a reference to an
+anonymous subroutine (C<$code>), and creates a new validation method with
+that name and code, to be used across schemes in the Brannigan object as
+if they were internal methods. You can even use this to override internal
+validation methods, just give the name of the method you want to override
+and the new code.
+
+=cut
+
+sub custom_validation {
+	my ($self, $name, $code) = @_;
+
+	return unless $name && $code && ref $code eq 'CODE';
+
+	$self->{validations}->{$name} = $code;
+
+	return 1;
+}
+
 =head1 INTERNAL METHODS
 
-=head2 _build_tree( $scheme )
+=head2 _build_tree( $scheme, [ \%custom_validations ] )
 
 Builds the final "tree" of validations and parsing methods to be performed
-on the parameters hash during processing.
+on the parameters hash during processing. Optionally receives a hash-ref
+of cross-scheme custom validation methods defined in the Brannigan object
+(see L</"CROSS-SCHEME CUSTOM VALIDATION METHODS"> for more info).
 
 =cut
 
 sub _build_tree {
-	my ($self, $scheme) = @_;
+	my ($self, $scheme, $customs) = @_;
 
 	my @trees;
 
@@ -794,7 +881,10 @@ sub _build_tree {
 		push(@trees, $self->_build_tree($_));
 	}
 
-	return Brannigan::Tree->new(@trees, $self->{$scheme});
+	my $tree = Brannigan::Tree->new(@trees, $self->{$scheme});
+	$tree->{_custom_validations} = $customs;
+
+	return $tree;
 }
 
 =head1 CAVEATS
@@ -814,10 +904,11 @@ versions of Brannigan:
 
 =over
 
-=item * Cross-scheme custom validation/parsing methods
+=item * Cross-scheme custom parsing methods
 
-Add an option to define custom validate/parse methods in the Brannigan
-object that can be used in the schemes as if they were built-in methods.
+Add an option to define custom parse methods in the Brannigan object that
+can be used in the schemes as if they were built-in methods (cross-scheme
+custom validations are already supported, next up is parse methods).
 
 =item * Support for third-party validation methods
 

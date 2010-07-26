@@ -138,6 +138,9 @@ my $b = Brannigan->new(
 						responsibilities => {
 							array => 1,
 							required => 1,
+							values => {
+								forbid_words => ['chief', 'super'],
+							},
 						},
 					},
 				},
@@ -150,6 +153,7 @@ my $b = Brannigan->new(
 						keys => {
 							'/^(en|he|fr)$/' => {
 								length_between => [100, 300],
+								no_lorem => 1,
 							},
 							fr => {
 								required => 1,
@@ -268,6 +272,23 @@ my $b = Brannigan->new(
 );
 
 ok($b, 'Got a proper Brannigan object');
+
+# let's create custom validation methods
+$b->custom_validation('no_lorem', sub {
+	my $value = shift;
+
+	return $value =~ m/lorem ipsum/ ? 0 : 1;
+});
+
+$b->custom_validation('forbid_words', sub {
+	my $value = shift;
+
+	foreach (@_) {
+		return 0 if $value =~ m/$_/;
+	}
+
+	return 1;
+});
 
 my %params = (
 	name => {
@@ -419,6 +440,7 @@ is_deeply($output, {
 my %params2 = %params;
 $params2{education}->[0]->{honors} = ['Valedictorian', "Teacher's Pet", "The Dean's Suckup"];
 $params2{education}->[1]->{honors} = 'Woooooeeeee!';
+$params2{other_info}->{bio}->{fr} = "I have lorem ipsum, that's not good.";
 $params2{other_info}->{social} = [{ website => 'facebook', user_id => 123412341234 }, { website => 'noogie.com', user_id => 'snoogens' }];
 
 my $output2 = $b->process('complex_inherit', \%params2);
@@ -477,7 +499,8 @@ is_deeply($output2, {
 			],
 			'bio' => {
 				'en' => 'Born, lives, will die.',
-				'he' => 'Nolad, Chai, Yamut.'
+				'he' => 'Nolad, Chai, Yamut.',
+				'fr' => "I have lorem ipsum, that's not good.",
 			}
 		},
 		'_rejects' => {
@@ -537,7 +560,8 @@ is_deeply($output2, {
 						'length_between(100, 300)'
 					],
 					'fr' => [
-						'required(1)'
+						'no_lorem(1)',
+						'length_between(100, 300)'
 					],
 					'he' => [
 						'length_between(100, 300)'
@@ -569,6 +593,7 @@ is_deeply($output2, {
 
 my %params3 = %params;
 $params3{some_other_thing} = "I'd like to tell the whole world that I'm a little teapot.";
+$params3{employment} = [{ start_year => 1995, end_year => 2000, employer => 'Distortion Inc.', responsibilities => ['Big chief, a real super-star'] }];
 
 my $output3 = $b->process('complex_inherit_2', \%params3);
 
@@ -627,7 +652,8 @@ is_deeply($output3, {
 			],
 			'bio' => {
 				'en' => 'Born, lives, will die.',
-				'he' => 'Nolad, Chai, Yamut.'
+				'he' => 'Nolad, Chai, Yamut.',
+				'fr' => "I have lorem ipsum, that's not good."
 			}
 		},
 		'_rejects' => {
@@ -678,16 +704,23 @@ is_deeply($output3, {
 					'value_between(1, 31)'
 				]
 			},
-			'employment' => [
-				'required(1)'
-			],
+			'employment' => {
+				'0' => {
+					'responsibilities' => {
+						'0' => [
+							'forbid_words(chief, super)'
+						]
+					}
+				}
+			},
 			'other_info' => {
 				'bio' => {
 					'en' => [
 						'length_between(100, 300)'
 					],
 					'fr' => [
-						'required(1)'
+						'no_lorem(1)',
+						'length_between(100, 300)'
 					],
 					'he' => [
 						'length_between(100, 300)'
@@ -705,6 +738,7 @@ is_deeply($output3, {
 				'required(1)'
 			]
 		},
+		'employment' => [{ start_year => 1995, end_year => 2000, employer => 'Distortion Inc.', responsibilities => ['Big chief, a real super-star'] }],
 		'picture_3' => 'http://www.example.com/images/mypic.png',
 		'picture_4' => 'http://www.example.com/images/mypic.gif',
 		'url' => 'http://www.example.com/?id=012345678&One',

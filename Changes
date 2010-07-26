@@ -1,6 +1,9 @@
 Revision history for Brannigan
 
 {{$NEXT}}
+	- Added support for cross-scheme custom validation methods defined
+	  in the Brannigan object
+	- Updated the complex test to use the new custom validation feature
 
 0.7       2010-07-23 20:02:18 Asia/Jerusalem
 	- Added some info about the required() validation method

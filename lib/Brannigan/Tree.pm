@@ -302,6 +302,9 @@ sub _validate_scalar {
 		if ($v eq 'validate' && ref $validations->{$v} eq 'CODE') {
 			# this is an "inline" validation method, invoke it
 			push(@rejects, $v) unless $validations->{$v}->($value, @data);
+		} elsif (exists $self->{_custom_validations} && exists $self->{_custom_validations}->{$v} && ref $self->{_custom_validations}->{$v} eq 'CODE') {
+			# this is a cross-scheme custom validation method
+			push(@rejects, $v.'('.join(', ', @data).')') unless $self->{_custom_validations}->{$v}->($value, @data);
 		} else {
 			# we're using a built-in validation method
 			push(@rejects, $v.'('.join(', ', @data).')') unless Brannigan::Validations->$v($value, @data);
