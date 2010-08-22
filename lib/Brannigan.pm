@@ -695,12 +695,18 @@ create a 'urls' group such as this:
 
 =back
 
+=head2 BUILT-IN VALIDATION METHODS
+
+As mentioned earlier, Brannigan comes with a set of built-in validation
+methods which are most common and useful everywhere. For a list of all
+validation methods provided by Brannigan, check L<Brannigan::Validations>.
+
 =head2 CROSS-SCHEME CUSTOM VALIDATION METHODS
 
-The custom C<validate> methods are nice, but when you want to use the same
+Custom C<validate> methods are nice, but when you want to use the same
 custom validation method in different places inside your scheme, or more
 likely in different schemes altogether, repeating the definition of each
-custom scheme in every place you want to use it is not very comfortable.
+custom method in every place you want to use it is not very comfortable.
 Brannigan provides a simple mechanism to create custom, named validation
 methods that can be used across schemes as if they were internal methods.
 
@@ -789,11 +795,6 @@ rejects hash-ref described earlier. Remember: Brannigan doesn't raise
 any errors. It's your job to decide what to do, and that's a good thing.
 
 Example schemes, input and output can be seen in L<Brannigan::Examples>.
-
-=head2 BUILT-IN VALIDATION METHODS
-
-For a list of all validation methods provided by Brannigan, check
-L<Brannigan::Validations>.
 
 =head1 METHODS
 
@@ -929,7 +930,11 @@ make any sense?
 =item * Something to aid rejects traversal
 
 Find something that would make traversal of the rejects list easier or
-whatever.
+whatever. Plus, printing the name of the validation method and its supplement
+values in the rejects list isn't always a good idea. For example, if we
+use the C<one_of()> validation method with a big list of say 100 options,
+our rejects list will contain all these 100 options, and that's not nice.
+So, think about something there.
 
 =back
 
