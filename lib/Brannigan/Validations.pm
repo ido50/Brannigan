@@ -243,8 +243,7 @@ sub matches {
 	my ($class, $value, $regex) = @_;
 
 	return unless ref $regex eq 'Regexp';
-	return 1 if $value =~ m/$regex/;
-	return;
+	$value =~ $regex ? 1 : return;
 }
 
 =head1 USEFUL PASSPHRASE VALIDATION METHODS

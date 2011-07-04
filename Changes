@@ -1,6 +1,9 @@
 Revision history for Brannigan
 
 {{$NEXT}}
+	- Added the matches() validation for regular expression matching
+	- Added several validation methods geared toward passphrase validation
+	- Added a test file that tests Brannigan::Validations
 
 0.8       2010-07-26 21:38:19 Asia/Jerusalem
 	- Added support for cross-scheme custom validation methods defined
