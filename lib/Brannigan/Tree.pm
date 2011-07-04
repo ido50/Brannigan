@@ -1,5 +1,8 @@
 package Brannigan::Tree;
 
+our $VERSION = "0.9";
+$VERSION = eval $VERSION;
+
 use strict;
 use warnings;
 use Brannigan::Validations;

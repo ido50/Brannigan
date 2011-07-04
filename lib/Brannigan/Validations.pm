@@ -1,5 +1,8 @@
 package Brannigan::Validations;
 
+our $VERSION = "0.9";
+$VERSION = eval $VERSION;
+
 use strict;
 use warnings;
 
@@ -12,7 +15,7 @@ Brannigan::Validations - Built-in validation methods for Brannigan.
 This module contains all built-in validation methods provided natively
 by the L<Brannigan> input validation/parsing system.
 
-=head1 METHODS
+=head1 GENERAL PURPOSE VALIDATION METHOD
 
 All these methods receive the value of a parameter, and other values
 that explicilty define the requirements. They return a true value if the
@@ -39,7 +42,7 @@ parameter will not be checked.
 sub required {
 	my ($class, $value, $boolean) = @_;
 
-	return undef if $boolean && !defined $value;
+	return if $boolean && !defined $value;
 
 	return 1;
 }
@@ -55,7 +58,7 @@ false value), this method will do nothing and simply return true.
 sub forbidden {
 	my ($class, $value, $boolean) = @_;
 
-	return defined $value && $boolean ? undef : 1;
+	defined $value && $boolean ? return : 1;
 }
 
 =head2 is_true( $value, $boolean )
@@ -70,9 +73,7 @@ simply returns true.
 sub is_true {
 	my ($class, $value, $boolean) = @_;
 
-	return undef if $boolean && !$value;
-
-	return 1;
+	$boolean && !$value ? return : 1;
 }
 
 =head2 length_between( $value, $min_length, $max_length )
@@ -87,10 +88,8 @@ sub length_between {
 	my ($class, $value, $min, $max) = @_;
 
 	my $length = ref $value eq 'ARRAY' ? @$value : length($value);
-	
-	return undef if $length < $min || $length > $max;
 
-	return 1;
+	$length < $min || $length > $max ? return : 1;
 }
 
 =head2 min_length( $value, $min_length )
@@ -108,9 +107,7 @@ sub min_length {
 
 	return 1 unless defined $min && $min >= 0;
 
-	return undef if !$value && $min || $length < $min;
-
-	return 1;
+	!$value && $min || $length < $min ? return : 1;
 }
 
 =head2 max_length( $value, $max_length )
@@ -126,9 +123,7 @@ sub max_length {
 
 	my $length = ref $value eq 'ARRAY' ? @$value : length($value);
 
-	return undef if $length > $max;
-
-	return 1;
+	$length > $max ? return : 1;
 }
 
 =head2 exact_length( $value, $length )
@@ -142,13 +137,11 @@ items.
 sub exact_length {
 	my ($class, $value, $exlength) = @_;
 
-	return undef unless $value;
+	return unless $value;
 
 	my $length = ref $value eq 'ARRAY' ? @$value : length($value);
 
-	return undef if $length != $exlength;
-	
-	return 1;
+	$length != $exlength ? return : 1;
 }
 
 =head2 integer( $value, $boolean )
@@ -160,11 +153,7 @@ If boolean is true, makes sure the value is an integer.
 sub integer {
 	my ($class, $value, $boolean) = @_;
 
-	if ($boolean && $value !~ m/^\d+$/) {
-		return undef;
-	}
-
-	return 1;
+	$boolean && $value !~ m/^\d+$/ ? return : 1;
 }
 
 =head2 value_between( $value, $min_value, $max_value )
@@ -176,9 +165,7 @@ Makes sure the value is between C<$min_value> and C<$max_value>.
 sub value_between {
 	my ($class, $value, $min, $max) = @_;
 
-	return undef if !defined($value) || $value < $min || $value > $max;
-
-	return 1;
+	!defined($value) || $value < $min || $value > $max ? return : 1;
 }
 
 =head2 min_value( $value, $min_value )
@@ -190,9 +177,7 @@ Makes sure the value is at least C<$min_value>.
 sub min_value {
 	my ($class, $value, $min) = @_;
 
-	return undef if $value < $min;
-
-	return 1;
+	$value < $min ? return : 1;
 }
 
 =head2 max_value( $value, $max )
@@ -204,9 +189,7 @@ Makes sure the value is no more than C<$max_value>.
 sub max_value {
 	my ($class, $value, $max) = @_;
 
-	return undef if $value > $max;
-
-	return 1;
+	$value > $max ? return : 1;
 }
 
 =head2 array( $value, $boolean )
@@ -218,7 +201,7 @@ If C<$boolean> is true, makes sure the value is actually an array reference.
 sub array {
 	my ($class, $value, $boolean) = @_;
 
-	return $boolean ? ref $value eq 'ARRAY' ? 1 : undef : ref $value eq 'ARRAY' ? undef : 1;
+	$boolean ? ref $value eq 'ARRAY' ? 1 : return : ref $value eq 'ARRAY' ? return : 1;
 }
 
 =head2 hash( $value, $boolean )
@@ -230,7 +213,7 @@ If C<$boolean> is true, makes sure the value is actually a hash reference.
 sub hash {
 	my ($class, $value, $boolean) = @_;
 
-	return $boolean ? ref $value eq 'HASH' ? 1 : undef : ref $value eq 'HASH' ? undef : 1;
+	$boolean ? ref $value eq 'HASH' ? 1 : return : ref $value eq 'HASH' ? return : 1;
 }
 
 =head2 one_of( $value, @values )
@@ -246,7 +229,233 @@ sub one_of {
 		return 1 if $value eq $_;
 	}
 
-	return undef;
+	return;
+}
+
+=head2 matches( $value, $regex )
+
+Returns true if C<$value> matches the regular express (C<qr//>) provided.
+Will return false if C<$regex> is not a regular expression.
+
+=cut
+
+sub matches {
+	my ($class, $value, $regex) = @_;
+
+	return unless ref $regex eq 'Regexp';
+	return 1 if $value =~ m/$regex/;
+	return;
+}
+
+=head1 USEFUL PASSPHRASE VALIDATION METHODS
+
+The following validations are useful for passphrase strength validations:
+
+=head2 min_alpha( $value, $integer )
+
+Returns a true value if C<$value> is a string that has at least C<$integer>
+alphabetic (C<A-Z> and C<a-z>) characters.
+
+=cut
+
+sub min_alpha {
+	my ($class, $value, $integer) = @_;
+
+	my @matches = ($value =~ m/[A-Za-z]/g);
+
+	scalar @matches >= $integer ? 1 : return;
+}
+
+=head2 max_alpha( $value, $integer )
+
+Returns a true value if C<$value> is a string that has at most C<$integer>
+alphabetic (C<A-Z> and C<a-z>) characters.
+
+=cut
+
+sub max_alpha {
+	my ($class, $value, $integer) = @_;
+
+	my @matches = ($value =~ m/[A-Za-z]/g);
+
+	scalar @matches <= $integer ? 1 : return;
+}
+
+=head2 min_digits( $value, $integer )
+
+Returns a true value if C<$value> is a string that has at least
+C<$integer> digits (C<0-9>).
+
+=cut
+
+sub min_digits {
+	my ($class, $value, $integer) = @_;
+
+	my @matches = ($value =~ m/[0-9]/g);
+
+	scalar @matches >= $integer ? 1 : return;
+}
+
+=head2 max_digits( $value, $integer )
+
+Returns a true value if C<$value> is a string that has at most
+C<$integer> digits (C<0-9>).
+
+=cut
+
+sub max_digits {
+	my ($class, $value, $integer) = @_;
+
+	my @matches = ($value =~ m/[0-9]/g);
+
+	scalar @matches <= $integer ? 1 : return;
+}
+
+=head2 min_signs( $value, $integer )
+
+Returns a true value if C<$value> has at least C<$integer> special or
+sign characters (e.g. C<%^&!@#>, or basically anything that isn't C<A-Za-z0-9>).
+
+=cut
+
+sub min_signs {
+	my ($class, $value, $integer) = @_;
+
+	my @matches = ($value =~ m/[^A-Za-z0-9]/g);
+
+	scalar @matches >= $integer ? 1 : return;
+}
+
+=head2 max_signs( $value, $integer )
+
+Returns a true value if C<$value> has at most C<$integer> special or
+sign characters (e.g. C<%^&!@#>, or basically anything that isn't C<A-Za-z0-9>).
+
+=cut
+
+sub max_signs {
+	my ($class, $value, $integer) = @_;
+
+	my @matches = ($value =~ m/[^A-Za-z0-9]/g);
+
+	scalar @matches <= $integer ? 1 : return;
+}
+
+=head2 max_consec( $value, $integer )
+
+Returns a true value if C<$value> does not have a sequence of consecutive
+characters longer than C<$integer>. Consequtive characters are either
+alphabetic (e.g. C<abcd>) or numeric (e.g. C<1234>).
+
+=cut
+
+sub max_consec {
+	my ($class, $value, $integer) = @_;
+
+	# the idea here is to break the string intoto an array of characters,
+	# go over each character in the array, starting at the first one,
+	# and making sure that character does not begin a sequence longer
+	# than allowed ($integer). This means we have recursive loops here,
+	# because for every character, we compare it to the following character
+	# and while they form a sequence, we move to the next pair and compare
+	# them until the sequence is broken. To make it a tad faster, our
+	# outer loop won't go over the entire characters array, but only
+	# up to the last character that might possibly form an invalid
+	# sequence. This character would be positioned $integer+1 characters
+	# from the end.
+
+	my @chars = split(//, $value);
+	for (my $i = 0; $i <= scalar(@chars) - $integer - 1; $i++) {
+		my $fc = $i; # first character for comparison
+		my $sc = $i + 1; # second character for comparison
+		my $sl = 1; # sequence length
+		while ($sc <= $#chars && ord($chars[$sc]) - ord($chars[$fc]) == 1) {
+			# characters are in sequence, increase counters
+			# and compare next pair
+			$sl++;
+			$fc++;
+			$sc++;
+		}
+		return if $sl > $integer;
+	}
+
+	return 1;
+}
+
+=head2 max_reps( $value, $integer )
+
+Returns a true value if C<$value> does not contain a sequence of a repeated
+character longer than C<$integer>. So, for example, if C<$integer> is 3,
+then "aaa901" will return true (even though there's a repetition of the
+'a' character it is not longer than three), while "9bbbb01" will return
+false.
+
+=cut
+
+sub max_reps {
+	my ($class, $value, $integer) = @_;
+
+	# the idea here is pretty much the same as in max_consec but
+	# we truely compare each pair of characters
+
+	my @chars = split(//, $value);
+	for (my $i = 0; $i <= scalar(@chars) - $integer - 1; $i++) {
+		my $fc = $i; # first character for comparison
+		my $sc = $i + 1; # second character for comparison
+		my $sl = 1; # sequence length
+		while ($sc <= $#chars && $chars[$sc] eq $chars[$fc]) {
+			# characters are in sequence, increase counters
+			# and compare next pair
+			$sl++;
+			$fc++;
+			$sc++;
+		}
+		return if $sl > $integer;
+	}
+
+	return 1;
+}
+
+=head2 max_dict( $value, $integer, [ \@dict_files ] )
+
+Returns a true value if C<$value> does not contain a dictionary word
+longer than C<$integer>. By default, this method will look for the Unix
+dict files C</usr/dict/words>, C</usr/share/dict/words> and C</usr/share/dict/linux.words>.
+You can supply more dictionary files to look for with an array reference
+of full paths.
+
+So, for example, if C<$integer> is 3, then "a9dog51" will return true
+(even though "dog" is a dictionary word, it is not longer than three),
+but "a9punk51" will return false, as "punk" is longer.
+
+WARNING: this method is known to not work properly when used in certain
+environments such as C<PSGI>, I'm investigating the issue.
+
+=cut
+
+sub max_dict {
+	my ($class, $value, $integer, $dict_files) = @_;
+
+	# the following code was stolen from the CheckDict function of
+	# Data::Password by Ariel Brosh (RIP) and Oded S. Resnik
+
+	$dict_files ||= [];
+	unshift(@$dict_files, qw!/usr/dict/words /usr/share/dict/words /usr/share/dict/linux.words!);
+
+	foreach (@$dict_files) {
+		open (DICT, $_) || next;
+		while (my $dict_line = <DICT>) {
+			chomp $dict_line;
+			next if length($dict_line) <= $integer;
+			if (index(lc($value), lc($dict_line)) > -1) {
+				close(DICT);
+				return;
+			}
+		}
+		close(DICT);
+	}
+
+	return 1;
 }
 
 =head1 SEE ALSO

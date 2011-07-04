@@ -2,6 +2,9 @@ package Brannigan;
 
 # ABSTRACT: Comprehensive, flexible system for validating and parsing input, mainly targeted at web applications.
 
+our $VERSION = "0.9";
+$VERSION = eval $VERSION;
+
 use warnings;
 use strict;
 use Brannigan::Tree;
