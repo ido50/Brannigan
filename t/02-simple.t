@@ -169,6 +169,6 @@ $b->add_scheme({ name => 'fresh', params => { subject => { required => 1 } } });
 is_deeply($b->process('fresh', { subject => 'test' }), { subject => 'test' }, 'new scheme');
 
 # check the functional interface
-is_deeply($b->process({ params => { subject => { required => 1 } } }, { subject => 'test' }), { subject => 'test' }, 'functional interface');
+is_deeply(Brannigan::process({ params => { subject => { required => 1 } } }, { subject => 'test' }), { subject => 'test' }, 'functional interface');
 
 done_testing();

@@ -880,27 +880,27 @@ Actual processing is done by L<Brannigan::Tree>.
 
 Same as above, but takes a scheme hash-ref instead of a name hash-ref. That
 basically gives you a functional interface for Brannigan, so you don't have
-to go through the regular object oriented interface. The only downside to this
-is that you cannot define custom validations using the C<custom_validation()>
-method (defined below). Note that when directly passing a scheme, you don't need
+to go through the regular object oriented interface. The only downsides to this
+are that you cannot define custom validations using the C<custom_validation()>
+method (defined below) and that your scheme must standalone (it cannot inherit
+from other schemes). Note that when directly passing a scheme, you don't need
 to give the scheme a name.
 
 =cut
 
 sub process {
-	my ($self, $scheme, $params) = @_;
+	if (ref $_[0] eq 'Brannigan') {
+		my ($self, $scheme, $params) = @_;
 
-	return unless $scheme && $params && ref $params eq 'HASH';
-
-	if (ref $scheme && ref $scheme eq 'HASH') {
-		my $tree = Brannigan::Tree->new($scheme);
-		return $tree->process($params);
-	} elsif ($self->{$scheme}) {
+		return unless $scheme && $params && ref $params eq 'HASH' && $self->{$scheme};
 		my $tree = $self->_build_tree($scheme, $self->{validations});
 		return $tree->process($params);
-	}
+	} else {
+		my ($scheme, $params) = @_;
 
-	return;
+		my $tree = Brannigan::Tree->new($scheme);
+		return $tree->process($params);
+	}
 }
 
 =head2 custom_validation( $name, $code )
