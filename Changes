@@ -1,6 +1,8 @@
 Revision history for Brannigan
 
 {{$NEXT}}
+
+1.0       2013-01-15 21:51:38 Asia/Jerusalem
 	- Added the ability to add a new scheme after the Brannigan object
 	  has been created (with the add_scheme() method).
 	- Added the ability to use Brannigan functionally, by directly
