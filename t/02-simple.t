@@ -2,7 +2,7 @@
 
 use strict;
 use warnings;
-use Test::More tests => 5;
+use Test::More tests => 7;
 use Brannigan;
 
 my $b = Brannigan->new(
@@ -163,5 +163,12 @@ is_deeply($data4, {
 		'section' => 'reviews',
 		'text' => 'lorem ipsum oh shit my parents are here',
 	}, 'inheriting scheme with no rejects');
+
+# add new scheme
+$b->add_scheme({ name => 'fresh', params => { subject => { required => 1 } } });
+is_deeply($b->process('fresh', { subject => 'test' }), { subject => 'test' }, 'new scheme');
+
+# check the functional interface
+is_deeply($b->process({ params => { subject => { required => 1 } } }, { subject => 'test' }), { subject => 'test' }, 'functional interface');
 
 done_testing();

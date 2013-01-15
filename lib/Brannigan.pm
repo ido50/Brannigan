@@ -2,7 +2,7 @@ package Brannigan;
 
 # ABSTRACT: Comprehensive, flexible system for validating and parsing input, mainly targeted at web applications.
 
-our $VERSION = "0.9";
+our $VERSION = "1.0";
 $VERSION = eval $VERSION;
 
 use warnings;
@@ -15,6 +15,83 @@ Brannigan - Comprehensive, flexible system for validating and parsing input, mai
 
 =head1 SYNOPSIS
 
+	use Brannigan;
+
+	my %scheme1 = ( name => 'scheme1', params => ... );
+	my %scheme2 = ( name => 'scheme2', params => ... );
+	my %scheme3 = ( name => 'scheme3', params => ... );
+
+	# use the OO interface
+	my $b = Brannigan->new(\%scheme1, \%scheme2);
+	$b->add_scheme(\%scheme3);
+
+	my $parsed = $b->process('scheme1', \%params);
+	if ($parsed->{_rejects}) {
+		die $parsed->{_rejects};
+	} else {
+		return $parsed;
+	}
+
+	# Or use the functional interface
+	my $parsed = Brannigan::process(\%scheme1, \%params);
+	if ($parsed->{_rejects}) {
+		die $parsed->{_rejects};
+	} else {
+		return $parsed;
+	}
+
+For a more comprehensive example, see L</"MANUAL"> in this document
+or the L<Brannigan::Examples> document.
+
+=head1 DESCRIPTION
+
+Brannigan is an attempt to ease the pain of collecting, validating and
+parsing input parameters in web applications. It's designed to answer both of
+the main problems that web applications face:
+
+=over 2
+
+=item * Simple user input
+
+Brannigan can validate and parse simple, "flat", user input, possibly
+coming from web forms.
+
+=item * Complex data structures
+
+Brannigan can validate and parse complex data structures, possibly
+deserialized from JSON or XML data sent to web services and APIs.
+
+=back
+
+Brannigan's approach to data validation is as follows: define a structure
+of parameters and their needed validations, and let the module automatically
+examine input parameters against this structure. Brannigan provides you
+with common validation methods that are used everywhere, and also allows
+you to create custom validations easily. This structure also defines how,
+if at all, the input should be parsed. This is akin to schema-based
+validations such as XSD, but much more functional, and most of all
+flexible.
+
+Check the next section for an example of such a structure. I call this
+structure a validation/parsing scheme. Schemes can inherit all the properties
+of other schemes, which allows you to be much more flexible in certain
+situations. Imagine you have a blogging application. A base scheme might
+define all validations and parsing needed to create a new blog post from
+a user's input. When editing a post, however, some parameters that were
+required when creating the post might not be required now (so you can
+just use older values), and maybe new parameters are introduced. Inheritance
+helps you avoid repeating yourself. You can another scheme which gets
+all the properties of the base scheme, only changing whatever it is needs
+changing (and possibly adding specific properties that don't exist in
+the base scheme).
+
+=head1 MANUAL
+
+In the following manual, we will look at the following example. It is based
+on L<Catalyst>, but should be fairly understandable for non-Catalyst users.
+Do not be alarmed by the size of this, this is only because it displays
+basically every aspect of Brannigan.
+
 This example uses L<Catalyst>, but should be pretty self explanatory. It's
 fairly complex, since it details pretty much all of the available Brannigan
 functionality, so don't be alarmed by the size of this thing.
@@ -26,8 +103,7 @@ functionality, so don't be alarmed by the size of this thing.
 	use Brannigan;
 
 	# create a new Brannigan object with two validation/parsing schemes:
-	my $b = Brannigan->new(
-	{
+	my $b = Brannigan->new({
 		name => 'post',
 		ignore_missing => 1,
 		params => {
@@ -91,24 +167,21 @@ functionality, so don't be alarmed by the size of this thing.
 			picture_1 => {
 				default => 'http://www.example.com/avatar.png',
 			},
-			somearray => {
+			array_of_ints => {
 				array => 1,
 				min_length => 3,
 				values => {
 					integer => 1,
 				},
 			},
-			somehash => {
+			hash_of_langs => {
 				hash => 1,
 				keys => {
 					_all => {
-						required => 1,
+						exact_length => 10,
 					},
 					en => {
-						exact_length => 10,
-					},
-					he => {
-						exact_length => 10,
+						required => 1,
 					},
 				},
 			},
@@ -183,48 +256,6 @@ functionality, so don't be alarmed by the size of this thing.
 			$c->model('DB::BlogPosts')->find($id)->update($params);
 		}
 	}
-
-=head1 DESCRIPTION
-
-Brannigan is an attempt to ease the pain of collecting, validating and
-parsing input parameters in web applications. It's designed to answer both of
-the main problems that web applications face:
-
-=over 2
-
-=item * Simple user input
-
-Brannigan can validate and parse simple, "flat", user input, possibly
-coming from web forms.
-
-=item * Complex data structures
-
-Brannigan can validate and parse complex data structures, possibly
-deserialized from JSON or XML data sent to web services and APIs.
-
-=back
-
-Brannigan's approach to data validation is as follows: define a structure
-of parameters and their needed validations, and let the module automatically
-examine input parameters against this structure. Brannigan provides you
-with common validation methods that are used everywhere, and also allows
-you to create custom validations easily. This structure also defines how,
-if at all, the input should be parsed. This is akin to schema-based
-validations such as XSD, but much more functional, and most of all
-flexible.
-
-Check the synopsis section for an example of such a structure. I call this
-structure a validation/parsing scheme. Schemes can inherit all the properties
-of other schemes, which allows you to be much more flexible in certain
-situations. Imagine you have a blogging application. A base scheme might
-define all validations and parsing needed to create a new blog post from
-a user's input. When editing a post, however, some parameters that were
-required when creating the post might not be required now (so you can
-just use older values), and maybe new parameters are introduced. Inheritance
-helps you avoid repeating yourself. You can another scheme which gets
-all the properties of the base scheme, only changing whatever it is needs
-changing (and possibly adding specific properties that don't exist in
-the base scheme).
 
 =head2 HOW BRANNIGAN WORKS
 
@@ -816,6 +847,24 @@ sub new {
 	return bless $self, $class;
 }
 
+=head2 add_scheme( \%scheme | @schemes )
+
+Adds one or more schemes to the object. Every scheme hash-ref should have
+a C<name> key with the name of the scheme. Existing schemes will be overridden.
+Returns the object itself for chainability.
+
+=cut
+
+sub add_scheme {
+	my $self = shift;
+
+	foreach (@_) {
+		$self->{$_->{name}} = $_;
+	}
+
+	return $self;
+}
+
 =head2 process( $scheme, \%params )
 
 Receives the name of a scheme and a hash-ref of input parameters (or a data
@@ -827,16 +876,31 @@ possibly containing a list of failed validations for each parameter.
 
 Actual processing is done by L<Brannigan::Tree>.
 
+=head2 process( \%scheme, \%params )
+
+Same as above, but takes a scheme hash-ref instead of a name hash-ref. That
+basically gives you a functional interface for Brannigan, so you don't have
+to go through the regular object oriented interface. The only downside to this
+is that you cannot define custom validations using the C<custom_validation()>
+method (defined below). Note that when directly passing a scheme, you don't need
+to give the scheme a name.
+
 =cut
 
 sub process {
 	my ($self, $scheme, $params) = @_;
 
-	return unless $scheme && $params && ref $params eq 'HASH' && $self->{$scheme};
+	return unless $scheme && $params && ref $params eq 'HASH';
 
-	my $tree = $self->_build_tree($scheme, $self->{validations});
+	if (ref $scheme && ref $scheme eq 'HASH') {
+		my $tree = Brannigan::Tree->new($scheme);
+		return $tree->process($params);
+	} elsif ($self->{$scheme}) {
+		my $tree = $self->_build_tree($scheme, $self->{validations});
+		return $tree->process($params);
+	}
 
-	return $tree->process($params);
+	return;
 }
 
 =head2 custom_validation( $name, $code )
@@ -881,7 +945,6 @@ sub _build_tree {
 
 	foreach (@schemes) {
 		next unless $self->{$_};
-		
 		push(@trees, $self->_build_tree($_));
 	}
 
@@ -990,7 +1053,7 @@ validation plugin (L<http://demos.usejquery.com/ketchup-plugin/>).
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010 Ido Perlmuter.
+Copyright 2010-2013 Ido Perlmuter.
 
 This program is free software; you can redistribute it and/or modify it
 under the terms of either: the GNU General Public License as published

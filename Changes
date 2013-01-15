@@ -1,6 +1,14 @@
 Revision history for Brannigan
 
 {{$NEXT}}
+	- Added the ability to add a new scheme after the Brannigan object
+	  has been created (with the add_scheme() method).
+	- Added the ability to use Brannigan functionally, by directly
+	  giving the process() method a scheme hash-ref.
+	- Shortened the synopsis section, moved the example from it
+	  to a manual (still in the main pod document)
+
+0.9       2011-07-04 22:35:57 Asia/Jerusalem
 	- Added the matches() validation for regular expression matching
 	- Added several validation methods geared toward passphrase validation
 	- Added a test file that tests Brannigan::Validations
