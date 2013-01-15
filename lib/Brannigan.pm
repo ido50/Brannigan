@@ -882,7 +882,7 @@ Same as above, but takes a scheme hash-ref instead of a name hash-ref. That
 basically gives you a functional interface for Brannigan, so you don't have
 to go through the regular object oriented interface. The only downsides to this
 are that you cannot define custom validations using the C<custom_validation()>
-method (defined below) and that your scheme must standalone (it cannot inherit
+method (defined below) and that your scheme must be standalone (it cannot inherit
 from other schemes). Note that when directly passing a scheme, you don't need
 to give the scheme a name.
 
