@@ -830,7 +830,7 @@ any errors. It's your job to decide what to do, and that's a good thing.
 
 Example schemes, input and output can be seen in L<Brannigan::Examples>.
 
-=head1 METHODS
+=head1 CONSTRUCTOR
 
 =head2 new( \%scheme | @schemes )
 
@@ -846,6 +846,8 @@ sub new {
 
 	return bless $self, $class;
 }
+
+=head1 OBJECT METHODS
 
 =head2 add_scheme( \%scheme | @schemes )
 
@@ -924,16 +926,16 @@ sub custom_validation {
 	return 1;
 }
 
-=head1 INTERNAL METHODS
+############################
+##### INTERNAL METHODS #####
+############################
 
-=head2 _build_tree( $scheme, [ \%custom_validations ] )
-
-Builds the final "tree" of validations and parsing methods to be performed
-on the parameters hash during processing. Optionally receives a hash-ref
-of cross-scheme custom validation methods defined in the Brannigan object
-(see L</"CROSS-SCHEME CUSTOM VALIDATION METHODS"> for more info).
-
-=cut
+# _build_tree( $scheme, [ \%custom_validations ] )
+# ------------------------------------------------
+# Builds the final "tree" of validations and parsing methods to be performed
+# on the parameters hash during processing. Optionally receives a hash-ref
+# of cross-scheme custom validation methods defined in the Brannigan object
+# (see L</"CROSS-SCHEME CUSTOM VALIDATION METHODS"> for more info).
 
 sub _build_tree {
 	my ($self, $scheme, $customs) = @_;

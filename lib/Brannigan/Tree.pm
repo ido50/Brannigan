@@ -18,7 +18,7 @@ validation/parsing scheme in its "final", workable structure, taking
 any inherited schemes into account. The actual validation and parsing
 of input is done by this module.
 
-=head1 MODULES
+=head1 CONSTRUCTOR
 
 =head2 new( $scheme | @schemes )
 
@@ -31,6 +31,8 @@ sub new {
 
 	return bless $class->_merge_trees(@_), $class;
 }
+
+=head1 OBJECT METHODS
 
 =head2 process( \%params )
 
@@ -239,16 +241,16 @@ sub parse {
 	return $data;
 }
 
-=head1 INTERNAL METHODS
+#############################
+##### INTERNAL METHODS ######
+#############################
 
-=head2 _validate_param( $param, $value, \%validations )
-
-Receives the name of a parameter, its value, and a hash-ref of validations
-to assert against. Returns a list of validations that failed for this
-parameter. Depending on the type of the parameter (either scalar, hash
-or array), this method will call one of the following three methods.
-
-=cut
+# _validate_param( $param, $value, \%validations )
+# ------------------------------------------------
+# Receives the name of a parameter, its value, and a hash-ref of validations
+# to assert against. Returns a list of validations that failed for this
+# parameter. Depending on the type of the parameter (either scalar, hash
+# or array), this method will call one of the following three methods.
 
 sub _validate_param {
 	my ($self, $param, $value, $validations) = @_;
@@ -276,14 +278,12 @@ sub _validate_param {
 	}
 }
 
-=head2 _validate_scalar( $param, $value, \%validations, [$type] )
-
-Receives the name of a parameter, its value, and a hash-ref of validations
-to assert against. Returns a list of all failed validations for this
-parameter. If the parameter is a child of a hash/array parameter, then
-C<$type> must be provided with either 'hash' or 'array'.
-
-=cut
+# _validate_scalar( $param, $value, \%validations, [$type] )
+# ----------------------------------------------------------
+# Receives the name of a parameter, its value, and a hash-ref of validations
+# to assert against. Returns a list of all failed validations for this
+# parameter. If the parameter is a child of a hash/array parameter, then
+# C<$type> must be provided with either 'hash' or 'array'.
 
 sub _validate_scalar {
 	my ($self, $param, $value, $validations, $type) = @_;
@@ -317,13 +317,11 @@ sub _validate_scalar {
 	return scalar @rejects ? [@rejects] : undef;
 }
 
-=head2 _validate_array( $param, $value, \%validations )
-
-Receives the name of an array parameter, its value, and a hash-ref of validations
-to assert against. Returns a list of validations that failed for this
-parameter.
-
-=cut
+# _validate_array( $param, $value, \%validations )
+# ------------------------------------------------
+# Receives the name of an array parameter, its value, and a hash-ref of validations
+# to assert against. Returns a list of validations that failed for this
+# parameter.
 
 sub _validate_array {
 	my ($self, $param, $value, $validations) = @_;
@@ -347,13 +345,11 @@ sub _validate_array {
 	return scalar keys %$rejects ? $rejects : undef;
 }
 
-=head2 _validate_hash( $param, $value, \%validations )
-
-Receives the name of a hash parameter, its value, and a hash-ref of validations
-to assert against. Returns a list of validations that failed for this
-parameter.
-
-=cut
+# _validate_hash( $param, $value, \%validations )
+# -----------------------------------------------
+# Receives the name of a hash parameter, its value, and a hash-ref of validations
+# to assert against. Returns a list of validations that failed for this
+# parameter.
 
 sub _validate_hash {
 	my ($self, $param, $value, $validations) = @_;
@@ -376,13 +372,11 @@ sub _validate_hash {
 	return scalar keys %$rejects ? $rejects : undef;
 }
 
-=head2 _merge_trees( @trees )
-
-Merges two or more hash-refs of validation/parsing trees and returns the
-resulting tree. The merge is performed in order, so trees later in the
-array (i.e. on the right) "tramp" the trees on the left.
-
-=cut
+# _merge_trees( @trees )
+# ----------------------
+# Merges two or more hash-refs of validation/parsing trees and returns the
+# resulting tree. The merge is performed in order, so trees later in the
+# array (i.e. on the right) "tramp" the trees on the left.
 
 sub _merge_trees {
 	my $class = shift;
