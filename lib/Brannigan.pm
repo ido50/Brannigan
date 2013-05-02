@@ -2,7 +2,7 @@ package Brannigan;
 
 # ABSTRACT: Comprehensive, flexible system for validating and parsing input, mainly targeted at web applications.
 
-our $VERSION = "1.0";
+our $VERSION = "1.1";
 $VERSION = eval $VERSION;
 
 use warnings;
@@ -1050,7 +1050,7 @@ L<http://search.cpan.org/dist/Brannigan/>
 
 =head1 ACKNOWLEDGEMENTS
 
-Brannigan is inspired by L<Oogly> (Al Newkirk) and the "Ketchup" jQuery
+Brannigan was inspired by L<Oogly> (Al Newkirk) and the "Ketchup" jQuery
 validation plugin (L<http://demos.usejquery.com/ketchup-plugin/>).
 
 =head1 LICENSE AND COPYRIGHT

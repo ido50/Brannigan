@@ -429,10 +429,10 @@ is_deeply($output, {
 		'picture_4' => 'http://www.example.com/images/mypic.gif',
 		'url' => 'http://www.example.com/?id=012345678&One',
 		'pictures' => [
+			'http://www.example.com/images/default.png',
 			'http://www.example.com/images/mypic.jpg',
 			'http://www.example.com/images/mypic.png',
-			'http://www.example.com/images/mypic.gif',
-			'http://www.example.com/images/default.png'
+			'http://www.example.com/images/mypic.gif'
 		],
 		'picture_1' => 'http://www.example.com/images/default.png'
 	}, 'complex scheme with no inheritance');
@@ -560,8 +560,8 @@ is_deeply($output2, {
 						'length_between(100, 300)'
 					],
 					'fr' => [
-						'no_lorem(1)',
-						'length_between(100, 300)'
+						'length_between(100, 300)',
+						'no_lorem(1)'
 					],
 					'he' => [
 						'length_between(100, 300)'
@@ -583,10 +583,10 @@ is_deeply($output2, {
 		'picture_4' => 'http://www.example.com/images/mypic.gif',
 		'url' => 'http://www.example.com/?id=012345678&One',
 		'pictures' => [
+			'http://www.example.com/images/default.png',
 			'http://www.example.com/images/mypic.jpg',
 			'http://www.example.com/images/mypic.png',
-			'http://www.example.com/images/mypic.gif',
-			'http://www.example.com/images/default.png'
+			'http://www.example.com/images/mypic.gif'
 		],
 		'picture_1' => 'http://www.example.com/images/default.png'
 	}, 'complex scheme with simple inheritance');
@@ -719,8 +719,8 @@ is_deeply($output3, {
 						'length_between(100, 300)'
 					],
 					'fr' => [
-						'no_lorem(1)',
-						'length_between(100, 300)'
+						'length_between(100, 300)',
+						'no_lorem(1)'
 					],
 					'he' => [
 						'length_between(100, 300)'
@@ -744,10 +744,10 @@ is_deeply($output3, {
 		'url' => 'http://www.example.com/?id=012345678&One',
 		'some_other_thing' => 'I\'d like to tell the whole world that I like to wear women\'s clothing.',
 		'pictures' => [
+			'http://www.example.com/images/default.png',
 			'http://www.example.com/images/mypic.jpg',
 			'http://www.example.com/images/mypic.png',
 			'http://www.example.com/images/mypic.gif',
-			'http://www.example.com/images/default.png'
 		],
 		'picture_1' => 'http://www.example.com/images/default.png'
 	}, 'complex scheme with multiple inheritance');

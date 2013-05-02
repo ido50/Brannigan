@@ -1,6 +1,9 @@
 Revision history for Brannigan
 
 {{$NEXT}}
+	- Sorting keys when dealing with hashes to prevent unexpected errors
+	  and test failures due to Perl's new hash key randomization
+	  introduced in version 5.17.
 
 1.0       2013-01-15 21:51:38 Asia/Jerusalem
 	- Added the ability to add a new scheme after the Brannigan object

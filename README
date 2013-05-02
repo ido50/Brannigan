@@ -820,11 +820,12 @@ MANUAL
 
     Example schemes, input and output can be seen in Brannigan::Examples.
 
-METHODS
+CONSTRUCTOR
   new( \%scheme | @schemes )
     Creates a new instance of Brannigan, with the provided scheme(s) (see
     "HOW SCHEMES LOOK" for more info on schemes).
 
+OBJECT METHODS
   add_scheme( \%scheme | @schemes )
     Adds one or more schemes to the object. Every scheme hash-ref should
     have a "name" key with the name of the scheme. Existing schemes will be
@@ -847,8 +848,9 @@ METHODS
     don't have to go through the regular object oriented interface. The only
     downsides to this are that you cannot define custom validations using
     the "custom_validation()" method (defined below) and that your scheme
-    must standalone (it cannot inherit from other schemes). Note that when
-    directly passing a scheme, you don't need to give the scheme a name.
+    must be standalone (it cannot inherit from other schemes). Note that
+    when directly passing a scheme, you don't need to give the scheme a
+    name.
 
   custom_validation( $name, $code )
     Receives the name of a custom validation method ($name), and a reference
@@ -857,14 +859,6 @@ METHODS
     object as if they were internal methods. You can even use this to
     override internal validation methods, just give the name of the method
     you want to override and the new code.
-
-INTERNAL METHODS
-  _build_tree( $scheme, [ \%custom_validations ] )
-    Builds the final "tree" of validations and parsing methods to be
-    performed on the parameters hash during processing. Optionally receives
-    a hash-ref of cross-scheme custom validation methods defined in the
-    Brannigan object (see "CROSS-SCHEME CUSTOM VALIDATION METHODS" for more
-    info).
 
 CAVEATS
     Brannigan is still in an early stage. Currently, no checks are made to
@@ -948,7 +942,7 @@ SUPPORT
         <http://search.cpan.org/dist/Brannigan/>
 
 ACKNOWLEDGEMENTS
-    Brannigan is inspired by Oogly (Al Newkirk) and the "Ketchup" jQuery
+    Brannigan was inspired by Oogly (Al Newkirk) and the "Ketchup" jQuery
     validation plugin (<http://demos.usejquery.com/ketchup-plugin/>).
 
 LICENSE AND COPYRIGHT

@@ -1,6 +1,6 @@
 package Brannigan::Validations;
 
-our $VERSION = "1.0";
+our $VERSION = "1.1";
 $VERSION = eval $VERSION;
 
 use strict;
