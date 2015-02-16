@@ -45,16 +45,11 @@ of failed validations for each failed parameter.
 sub process {
 	my ($self, $params) = @_;
 
-	# validate the data
-	my $data = {};
-
 	my $rejects = $self->validate($params, $self->{params});
-	$data->{_rejects} = $rejects if $rejects;
+	my $data = $self->parse($params, $self->{params}, $self->{groups});
 
-	my $prs = $self->parse($params, $self->{params}, $self->{groups});
-	foreach (sort keys %$prs) {
-		$data->{$_} = $prs->{$_};
-	}
+	$data->{_rejects} = $rejects
+		if $rejects;
 
 	return $data;
 }

@@ -842,9 +842,7 @@ L</"HOW SCHEMES LOOK"> for more info on schemes).
 sub new {
 	my $class = shift;
 
-	my $self = { map { $_->{name} => $_ } @_ };
-
-	return bless $self, $class;
+	return bless { map { $_->{name} => $_ } @_ }, $class;
 }
 
 =head1 OBJECT METHODS
@@ -895,13 +893,9 @@ sub process {
 		my ($self, $scheme, $params) = @_;
 
 		return unless $scheme && $params && ref $params eq 'HASH' && $self->{$scheme};
-		my $tree = $self->_build_tree($scheme, $self->{validations});
-		return $tree->process($params);
+		$self->_build_tree($scheme, $self->{validations})->process($params);
 	} else {
-		my ($scheme, $params) = @_;
-
-		my $tree = Brannigan::Tree->new($scheme);
-		return $tree->process($params);
+		Brannigan::Tree->new($_[0])->process($_[1]);
 	}
 }
 
@@ -922,8 +916,6 @@ sub custom_validation {
 	return unless $name && $code && ref $code eq 'CODE';
 
 	$self->{validations}->{$name} = $code;
-
-	return 1;
 }
 
 ############################

@@ -42,9 +42,7 @@ parameter will not be checked.
 sub required {
 	my ($class, $value, $boolean) = @_;
 
-	return if $boolean && !defined $value;
-
-	return 1;
+	return !$boolean || defined $value;
 }
 
 =head2 forbidden( $value, $boolean )
@@ -58,7 +56,7 @@ false value), this method will do nothing and simply return true.
 sub forbidden {
 	my ($class, $value, $boolean) = @_;
 
-	defined $value && $boolean ? return : 1;
+	return !$boolean || !defined $value;
 }
 
 =head2 is_true( $value, $boolean )
@@ -73,7 +71,7 @@ simply returns true.
 sub is_true {
 	my ($class, $value, $boolean) = @_;
 
-	$boolean && !$value ? return : 1;
+	return !$boolean || $value;
 }
 
 =head2 length_between( $value, $min_length, $max_length )
@@ -87,9 +85,7 @@ makes sure it has between C<$min_length> and C<$max_length> items.
 sub length_between {
 	my ($class, $value, $min, $max) = @_;
 
-	my $length = ref $value eq 'ARRAY' ? @$value : length($value);
-
-	$length < $min || $length > $max ? return : 1;
+	return $class->min_length($value, $min) && $class->max_length($value, $max);
 }
 
 =head2 min_length( $value, $min_length )
@@ -103,11 +99,7 @@ items.
 sub min_length {
 	my ($class, $value, $min) = @_;
 
-	my $length = ref $value eq 'ARRAY' ? @$value : length($value);
-
-	return 1 unless defined $min && $min >= 0;
-
-	!$value && $min || $length < $min ? return : 1;
+	return _length($value) >= $min;
 }
 
 =head2 max_length( $value, $max_length )
@@ -121,9 +113,7 @@ C<$max_length> items.
 sub max_length {
 	my ($class, $value, $max) = @_;
 
-	my $length = ref $value eq 'ARRAY' ? @$value : length($value);
-
-	$length > $max ? return : 1;
+	return _length($value) <= $max;
 }
 
 =head2 exact_length( $value, $length )
@@ -137,11 +127,7 @@ items.
 sub exact_length {
 	my ($class, $value, $exlength) = @_;
 
-	return unless $value;
-
-	my $length = ref $value eq 'ARRAY' ? @$value : length($value);
-
-	$length != $exlength ? return : 1;
+	return _length($value) == $exlength;
 }
 
 =head2 integer( $value, $boolean )
@@ -153,7 +139,7 @@ If boolean is true, makes sure the value is an integer.
 sub integer {
 	my ($class, $value, $boolean) = @_;
 
-	$boolean && $value !~ m/^\d+$/ ? return : 1;
+	return !$boolean || $value =~ m/^\d+$/;
 }
 
 =head2 value_between( $value, $min_value, $max_value )
@@ -165,7 +151,7 @@ Makes sure the value is between C<$min_value> and C<$max_value>.
 sub value_between {
 	my ($class, $value, $min, $max) = @_;
 
-	!defined($value) || $value < $min || $value > $max ? return : 1;
+	return defined $value && $value >= $min && $value <= $max;
 }
 
 =head2 min_value( $value, $min_value )
@@ -177,7 +163,7 @@ Makes sure the value is at least C<$min_value>.
 sub min_value {
 	my ($class, $value, $min) = @_;
 
-	$value < $min ? return : 1;
+	return defined $value && $value >= $min;
 }
 
 =head2 max_value( $value, $max )
@@ -189,7 +175,7 @@ Makes sure the value is no more than C<$max_value>.
 sub max_value {
 	my ($class, $value, $max) = @_;
 
-	$value > $max ? return : 1;
+	return defined $value && $value <= $max;
 }
 
 =head2 array( $value, $boolean )
@@ -242,8 +228,7 @@ Will return false if C<$regex> is not a regular expression.
 sub matches {
 	my ($class, $value, $regex) = @_;
 
-	return unless ref $regex eq 'Regexp';
-	$value =~ $regex ? 1 : return;
+	return ref $regex eq 'Regexp' && $value =~ $regex;
 }
 
 =head1 USEFUL PASSPHRASE VALIDATION METHODS
@@ -262,7 +247,7 @@ sub min_alpha {
 
 	my @matches = ($value =~ m/[A-Za-z]/g);
 
-	scalar @matches >= $integer ? 1 : return;
+	return scalar @matches >= $integer;
 }
 
 =head2 max_alpha( $value, $integer )
@@ -277,7 +262,7 @@ sub max_alpha {
 
 	my @matches = ($value =~ m/[A-Za-z]/g);
 
-	scalar @matches <= $integer ? 1 : return;
+	return scalar @matches <= $integer;
 }
 
 =head2 min_digits( $value, $integer )
@@ -292,7 +277,7 @@ sub min_digits {
 
 	my @matches = ($value =~ m/[0-9]/g);
 
-	scalar @matches >= $integer ? 1 : return;
+	return scalar @matches >= $integer;
 }
 
 =head2 max_digits( $value, $integer )
@@ -307,7 +292,7 @@ sub max_digits {
 
 	my @matches = ($value =~ m/[0-9]/g);
 
-	scalar @matches <= $integer ? 1 : return;
+	return scalar @matches <= $integer;
 }
 
 =head2 min_signs( $value, $integer )
@@ -322,7 +307,7 @@ sub min_signs {
 
 	my @matches = ($value =~ m/[^A-Za-z0-9]/g);
 
-	scalar @matches >= $integer ? 1 : return;
+	return scalar @matches >= $integer;
 }
 
 =head2 max_signs( $value, $integer )
@@ -337,7 +322,7 @@ sub max_signs {
 
 	my @matches = ($value =~ m/[^A-Za-z0-9]/g);
 
-	scalar @matches <= $integer ? 1 : return;
+	return scalar @matches <= $integer;
 }
 
 =head2 max_consec( $value, $integer )
@@ -455,6 +440,14 @@ sub max_dict {
 	}
 
 	return 1;
+}
+
+####################
+# INTERNAL METHODS #
+####################
+
+sub _length {
+	return ref $_[0] eq 'ARRAY' ? scalar(@{$_[0]}) : length($_[0]);
 }
 
 =head1 SEE ALSO
