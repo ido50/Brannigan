@@ -2,7 +2,7 @@ package Brannigan;
 
 # ABSTRACT: Comprehensive, flexible system for validating and parsing input, mainly targeted at web applications.
 
-our $VERSION = "1.1";
+our $VERSION = "1.100001";
 $VERSION = eval $VERSION;
 
 use warnings;
@@ -1047,14 +1047,21 @@ validation plugin (L<http://demos.usejquery.com/ketchup-plugin/>).
 
 =head1 LICENSE AND COPYRIGHT
 
-Copyright 2010-2013 Ido Perlmuter.
+Copyright 2017 Ido Perlmuter
 
-This program is free software; you can redistribute it and/or modify it
-under the terms of either: the GNU General Public License as published
-by the Free Software Foundation; or the Artistic License.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-See http://dev.perl.org/licenses/ for more information.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 
 =cut
 
 1;
+__END__
