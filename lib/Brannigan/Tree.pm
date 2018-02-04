@@ -269,6 +269,7 @@ sub _validate_param {
 	} elsif ($validations->{array}) {
 		return $self->_validate_array($param, $value, $validations);
 	} else {
+		return ['scalar(1)'] if defined $value && ref $value;
 		return $self->_validate_scalar($param, $value, $validations);
 	}
 }
