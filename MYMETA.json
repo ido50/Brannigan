@@ -48,6 +48,6 @@
          "web" : "https://github.com/ido50/Brannigan"
       }
    },
-   "version" : "2.0",
+   "version" : "2.1",
    "x_serialization_backend" : "JSON::PP version 4.16"
 }

@@ -325,8 +325,7 @@ A schema is a hash-ref that contains the following keys:
 Either a scalar naming a different schema or an array-ref of schema names.
 The new schema will inherit all the properties of the schema(s) defined by this
 key. If an array-ref is provided, the schema will inherit their properties in
-the order they are defined. See the L</"CAVEATS"> section for some "heads-up"
-about inheritance.
+the order they are defined.
 
 =item * params
 
