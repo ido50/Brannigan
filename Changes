@@ -1,5 +1,8 @@
 Revision history for Brannigan
 
+2.1   2025-01-23
+    - Minor documentation fixes
+
 2.0   2025-01-23
     [ BREAKING CHANGES ]
     - Complete refactor, all packages consolidated into one

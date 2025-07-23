@@ -7,7 +7,7 @@ use strict;
 
 use Hash::Merge;
 
-our $VERSION = "2.0";
+our $VERSION = "2.1";
 $VERSION = eval $VERSION;
 
 =head1 NAME
@@ -226,16 +226,16 @@ schemas, as they showcases almost all features of Brannigan.
 In essence, Brannigan works in five stages (which all boil down to one single
 command):
 
-=over
+=over 5
 
-=item * SCHEMA PREPARATION
+=item 1. SCHEMA PREPARATION
 
 Brannigan receives the name of a validation schema, and a hash reference of input
 parameters. Brannigan then loads the schema and prepares it (merging it with
 inherited schemas, if any) for later processing. Finalized schemas are cached
 for improved performance.
 
-=item * DATA PREPROCESSING
+=item 2. DATA PREPROCESSING
 
 Brannigan invokes all C<preprocess> functions defined in the schema on the input
 data, if there are any. These functions are allowed to modify the input.
@@ -243,7 +243,7 @@ data, if there are any. These functions are allowed to modify the input.
 Configured default values will also be provided to their respective parameters in
 this stage as well, if those parameters are not provided in the input.
 
-=item * DATA VALIDATION
+=item 3. DATA VALIDATION
 
 Brannigan invokes all validation methods defined in the schema on the input data,
 and generates a hash reference of rejected parameters, if there were any. For
@@ -253,7 +253,7 @@ created.
 If one or more parameters failed validation, the next step (data postprocessing)
 will be skipped.
 
-=item * DATA POSTPROCESSING
+=item 4. DATA POSTPROCESSING
 
 If the previous stage (validation) did not fail, Brannigan will call every
 C<postprocess> function defined in the schema. There are two types of
@@ -275,7 +275,7 @@ it sees fit. The function should not return any value.
 
 =back
 
-=item * FINAL RESULT
+=item 5. FINAL RESULT
 
 If all input parameters passed validation, an undefined value is returned to
 the caller. Otherwise, a hash-reference of rejects is returned. This is a
@@ -303,6 +303,8 @@ characters.
 =item 3. The third value of the "pictures" array does not start with "http://".
 
 =item 4. The "mobile" key of the "phone" hash parameter was not provided.
+
+=back
 
 =back
 
@@ -465,7 +467,7 @@ Makes sure the value's length (stringwise) is inside the range of
 C<$min_length>-C<$max_length>, or, if the value is an array reference,
 makes sure it has between C<$min_length> and C<$max_length> items.
 
-=head2 { min_length => $min_length }
+=head3 { min_length => $min_length }
 
 Makes sure the value's length (stringwise) is at least C<$min_length>, or,
 if the value is an array reference, makes sure it has at least C<$min_length>
@@ -1569,16 +1571,14 @@ sub _validate_schema_definition {
     die "Schema validation failed" if $rejects;
 }
 
-=head1 UPGRADE GUIDE
-
-=head2 Upgrading from Version 1.x to 2.0
+=head1 UPGRADING FROM 1.x TO 2.0
 
 Version 2.0 of Brannigan includes significant breaking changes. This guide will
 help you upgrade your existing code.
 
-=head3 BREAKING CHANGES
+=head2 BREAKING CHANGES
 
-=head4 Constructor and Schema Registration
+=head3 Constructor and Schema Registration
 
 B<Old (1.x):>
 
@@ -1593,19 +1593,19 @@ B<New (2.0):>
     $b->register_schema('schema_name', { params => { ... } });
     $b->register_schema('another_schema', { params => { ... } });
 
-=head4 Method Names
+=head3 Method Names
 
 Several methods have been renamed for clarity:
 
 =over 2
 
-=item * C<add_scheme()> → C<register_schema()>
+=item * C<add_scheme()> => C<register_schema()>
 
-=item * C<custom_validation()> → C<register_validator()>
+=item * C<custom_validation()> => C<register_validator()>
 
 =back
 
-=head4 Return Value Changes
+=head3 Return Value Changes
 
 The C<process()> method now returns different values:
 
@@ -1628,7 +1628,7 @@ Processing happens in-place on the input hash-ref.
     }
     # %params is modified in-place with processed values
 
-=head4 Error Structure Changes
+=head3 Error Structure Changes
 
 The structure of validation errors has changed significantly:
 
@@ -1662,7 +1662,7 @@ Key changes:
 
 =back
 
-=head4 Processing Function Changes
+=head3 Processing Function Changes
 
 =over 3
 
@@ -1688,9 +1688,9 @@ B<New (2.0):>
         return process($value);  # Return the processed value directly
     }
 
-=head3 NEW FEATURES
+=head2 NEW FEATURES
 
-=head4 Preprocessing
+=head3 Preprocessing
 
 You can now preprocess input before validation:
 
@@ -1702,7 +1702,7 @@ You can now preprocess input before validation:
         }
     }
 
-=head4 Global Postprocessing
+=head3 Global Postprocessing
 
 Add a global postprocess function to your schema:
 
@@ -1715,7 +1715,7 @@ Add a global postprocess function to your schema:
         }
     }
 
-=head4 Unknown Parameter Handling
+=head3 Unknown Parameter Handling
 
 Control how unknown parameters are handled:
 
@@ -1726,7 +1726,7 @@ Control how unknown parameters are handled:
 
 This works at all nesting levels (top-level, nested hashes, array items).
 
-=head4 Enhanced Default Values
+=head3 Enhanced Default Values
 
 Default values now work in nested structures:
 
@@ -1744,7 +1744,7 @@ Default values now work in nested structures:
         }
     }
 
-=head4 Improved Schema Inheritance
+=head3 Improved Schema Inheritance
 
 Schema inheritance now works recursively and merges parameter definitions:
 
@@ -1762,7 +1762,7 @@ Schema inheritance now works recursively and merges parameter definitions:
         }
     });
 
-=head3 REMOVED FEATURES
+=head2 REMOVED FEATURES
 
 The following features have been removed:
 
