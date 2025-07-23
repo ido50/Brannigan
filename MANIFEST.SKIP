@@ -16,3 +16,6 @@
 ^\.build.+$
 ^MYMETA.yml$
 ^MYMETA.json$
+^CLAUDE\.md$
+^release\.sh$
+^\.claude/

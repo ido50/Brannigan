@@ -1,6 +1,6 @@
 Revision history for Brannigan
 
-{{$NEXT}}
+2.0   2025-01-23
     [ BREAKING CHANGES ]
     - Complete refactor, all packages consolidated into one
     - Terminology change: "scheme" => "schema".
